@@ -1,30 +1,16 @@
-SUFFIXES = [
-	'AVE',
-	'AVENUE',
-	'BLVD',
-	'BOULEVARD',
-	'DR',
-	'DRIVE',
-	'PL',
-	'PLACE',
-	'RD',
-	'ROAD',
-	'ST',
-	'STREET',
-	'WAY',
-	'WY',
-]
-
 DIRS = [
 	'N',
+	'NO',
 	'NORTH',
 	'S',
+	'SO',
 	'SOUTH',
 	'E',
 	'EAST',
 	'W',
 	'WEST',
 ]
+
 
 UNIT_TYPES = [
 	'#',
@@ -60,3 +46,28 @@ LONG_ORDINALS_STD = {
 	'NINETEENTH': '19TH',
 	'TWENTIETH': '20TH',
 }
+
+
+
+'''
+STREET NAMES
+'''
+
+# Make list of street names that have a token from SUFFIXES_ALL
+	# Loop over distinct street names
+		# Split into tokens
+		# Loop over tokens
+			# If token in SUFFIXES ALL
+				# Add to watch list
+
+# List of streets that have a dir in the name?
+
+
+'''
+SUFFIXES
+'''
+
+# Load suffixes from JSON
+# Create
+	# List of all suffixes (std + common)			SUFFIXES_ALL
+	# Dict of all suffixes => std 					SUFFIXES_STD_DICT
