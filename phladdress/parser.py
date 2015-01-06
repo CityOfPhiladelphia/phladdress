@@ -1,8 +1,20 @@
 import re
-from phladdress.data import DIRS, SUFFIXES, UNIT_TYPES, LONG_ORDINALS_STD
+from phladdress.data import DIRS, DIRS_STD, SUFFIXES, SUFFIXES_STD, UNIT_TYPES, UNIT_TYPES_STD, LONG_ORDINALS_STD
 
 # DEV
 from phladdress.test.test_addrs import TEST_ADDRS
+
+
+'''
+NOTES
+'''
+
+# Handle these:
+#	1 SOUTH ST
+#	1 EAST SOUTH ST
+#	101 S INDEPENDENCE MALL E
+# 	41ST ST DR
+#	1132 BIG ST REAR OFFICE
 
 
 '''
@@ -102,6 +114,7 @@ class Parser:
 
 		return unit_num
 
+
 	'''
 	PARSE
 	'''
@@ -127,7 +140,7 @@ class Parser:
 		'''
 
 		# This returns a string for a single address or a dictionary for a range
-		# TODO: this is kinda erratic, because it will parse out fractionals if it's a range but not otherwise
+		# TODO: this is kinda inconsistent, because it will parse out fractionals if it's a range but not otherwise
 		# TODO: handle 1092 - 1100 RIDGE AVE
 		street_num_comps = street_num_re.match(input_addr).groupdict()
 		street_num_full = street_num_comps['full']
@@ -194,9 +207,6 @@ class Parser:
 				del tokens[-1]
 				break
 
-		# comps['unit_type'] = unit_type
-		# comps['unit_num'] = unit_num
-
 
 		'''
 		POSTDIR
@@ -205,9 +215,9 @@ class Parser:
 		postdir = None
 
 		# Check if first token is a directional
-		if tokens[0] in DIRS:
-			postdir = tokens[0]
-			del tokens[0]
+		if tokens[-1] in DIRS:
+			postdir = tokens[-1]
+			del tokens[-1]
 
 		comps['postdir'] = postdir
 
@@ -221,10 +231,9 @@ class Parser:
 
 		if tokens[-1] in SUFFIXES:
 			suffix = tokens[-1]
-
 			del tokens[-1]
 
-		comps['suffix'] = suffix
+		# comps['suffix'] = suffix
 
 
 		'''
@@ -243,14 +252,19 @@ class Parser:
 		# Street name
 		street_name = self.standardize_street_name(street_name)
 
-		# Unit num
-		if unit_num:
-			unit_num = self.standardize_unit_num(unit_num)
-		
+		# Unit
+		if unit_type:
+			unit_type = UNIT_TYPES_STD[unit_type]
+
+			if unit_num:
+				unit_num = self.standardize_unit_num(unit_num)
+
 		comps['unit'] = ' '.join([unit_type, unit_num]) if unit_num else None
 
+		# Suffix
+		comps['suffix'] = SUFFIXES_STD[suffix]
 
-		# 
+
 
 		return comps
 
@@ -273,8 +287,8 @@ if __name__ == '__main__':
 
 
 	# JUST ONE
-	TEST = '1234 EIGHTH ST #008'
 
+	TEST = '1234 WEST MARKET STREET 80TH FLOOR'
 	print TEST
 	comps = parser.parse(TEST)
 	ordered = ', '.join([str(x) + ': ' + str(comps[x]) for x in FIELDS if comps[x]])
@@ -294,8 +308,9 @@ if __name__ == '__main__':
 
 
 	# TIME
+
 	# from datetime import datetime
 	# start = datetime.now()
 	# for i in range(0, 750000):
-	# 	parser.parse('1234 MARKET ST 08TH FL')
+	# 	parser.parse('1234 MARKET ST 80TH FLOOR')
 	# print 'Took {}'.format(datetime.now() - start)

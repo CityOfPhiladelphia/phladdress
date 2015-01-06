@@ -1,27 +1,19 @@
-DIRS = [
-	'N',
-	'NO',
-	'NORTH',
-	'S',
-	'SO',
-	'SOUTH',
-	'E',
-	'EAST',
-	'W',
-	'WEST',
-]
+import csv
 
+DIRS_STD = {
+	'N': 'N',
+	'NO': 'N',
+	'NORTH': 'N',
+	'S': 'S',
+	'SO': 'S',
+	'SOUTH': 'S',
+	'E': 'E',
+	'EAST': 'E',
+	'W': 'W',
+	'WEST': 'W'
+}
 
-UNIT_TYPES = [
-	'#',
-	'APT',
-	'FL',
-	'FLOOR',
-	'UNIT',
-	'BSMT',
-	'LOBBY',
-	'REAR',
-]
+DIRS = set(DIRS_STD.keys())
 
 
 LONG_ORDINALS_STD = {
@@ -48,7 +40,6 @@ LONG_ORDINALS_STD = {
 }
 
 
-
 '''
 STREET NAMES
 '''
@@ -67,7 +58,26 @@ STREET NAMES
 SUFFIXES
 '''
 
-# Load suffixes from JSON
-# Create
-	# List of all suffixes (std + common)			SUFFIXES_ALL
-	# Dict of all suffixes => std 					SUFFIXES_STD_DICT
+# Make suffix lists
+with open('./data/suffixes.csv') as f:
+	reader = csv.DictReader(f)
+
+	# Dict to convert common suffixes to standard
+	SUFFIXES_STD = {x['COMMON']: x['STANDARD'] for x in reader}
+
+	# Set to look up suffixes
+	SUFFIXES = set(SUFFIXES_STD.keys())
+
+
+'''
+UNIT TYPES
+'''
+
+with open('./data/unit_types.csv') as f:
+	reader = csv.DictReader(f)
+
+	# Dict to convert common unit types to standard
+	UNIT_TYPES_STD = {x['COMMON']: x['STANDARD'] for x in reader}
+
+	# Set to look up unit types
+	UNIT_TYPES = set(UNIT_TYPES_STD.keys())
