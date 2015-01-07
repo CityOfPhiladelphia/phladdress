@@ -364,8 +364,8 @@ if __name__ == '__main__':
 
 	# from datetime import datetime
 	# start = datetime.now()
-	# for i in range(0, 750000):
-	# 	parser.parse('1234 MARKET ST 80TH FLOOR')
+	# for i in range(0, 1000000):
+	# 	parser.parse('1234 W EAST RIVER DR EAST #4')
 	# print 'Took {}'.format(datetime.now() - start)
 
 
