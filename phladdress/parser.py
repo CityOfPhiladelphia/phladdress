@@ -370,24 +370,54 @@ if __name__ == '__main__':
 
 
 	# 311 FILE
-	path = "/Users/rmartin/Development/phladdress/meta/311addronly.csv"
-	start = 1000
-	stop = 1010
-	i = 0
-	with open(path) as f:
-		import csv
-		for row in csv.reader(f):
-			row = row[0]
-			if i < start:
-				i += 1
-				continue
-			if stop < i:
-				break
-			print row
-			comps = parser.parse(row)
-			print ' '.join([str(comps[x]) for x in FIELDS if comps[x]])
-			ordered = ', '.join([str(x) + ': ' + str(comps[x]) for x in FIELDS if comps[x]])
-			print ordered
-			print
 
-			i += 1
+	# path = "/Users/rmartin/Development/phladdress/meta/311addronly.csv"
+	# start = 10000
+	# num = 10
+	# i = 0
+	# with open(path) as f:
+	# 	end = start + num
+	# 	import csv
+	# 	for row in csv.reader(f):
+	# 		row = row[0]
+	# 		if i < start:
+	# 			i += 1
+	# 			continue
+	# 		if end < i:
+	# 			break
+	# 		print row
+	# 		comps = parser.parse(row)
+	# 		print ' '.join([str(comps[x]) for x in FIELDS if comps[x]])
+	# 		ordered = ', '.join([str(x) + ': ' + str(comps[x]) for x in FIELDS if comps[x]])
+	# 		print ordered
+	# 		print
+
+	# 		i += 1
+
+
+	# TIME 311
+
+	# path = "/Users/rmartin/Development/phladdress/meta/311addronly.csv"
+	# from datetime import datetime
+	# import csv
+	# start = datetime.now()
+
+	# errors = 0
+	# count = 0
+
+	# with open(path) as f:
+	# 	for row in csv.reader(f):
+	# 		try:
+	# 			row = row[0]
+	# 			results = parser.parse(row)
+	# 		except:
+	# 			errors += 1
+	# 			import traceback
+	# 			print traceback.format_exc()
+	# 			raise
+	# 		finally:
+	# 			count += 1
+
+	# print 'Took {}'.format(datetime.now() - start)
+	# print errors, 'errors'
+	# print "processed {} rows".format(count)
