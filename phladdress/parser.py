@@ -46,13 +46,13 @@ class Parser:
 		Remove extraneous punctuation and whitespace
 		'''
 
-		# addr = addr.strip()
 		addr = ' '.join(addr.split())
 		addr = addr.replace('.', '')
 		addr = addr.replace(',', '')
 		addr = addr.upper()
 
 		return addr
+
 
 	def is_ordinal(self, test):
 		# Short ordinal
@@ -65,14 +65,34 @@ class Parser:
 
 		return False
 
-	def is_numeral(self, test):
+
+	def is_numeric(self, test):
 		# Digit or ordinal
-		if test.isdigit() or self.is_ordinal(test):
+		if self.is_ordinal(test) or test.isdigit():
 			return True
 
 		# TODO: for better peformance this could return the numeral type so we don't have to check again
 
 		return False
+
+
+	def ordinalize(self, num):
+		if not num.isdigit():
+			raise Exception('Cannot ordinalize {}'.format(num))
+
+		last_digit = num[-1]
+		suffix = None
+
+		if last_digit > 3:
+			suffix = 'TH'
+		elif last_digit == 1:
+			suffix = 'ST'
+		elif last_digit == 2:
+			suffix = 'ND'
+		elif last_digit== 3:
+			suffix = 'RD'
+
+		return num + suffix
 
 
 	'''
@@ -99,6 +119,8 @@ class Parser:
 		# Check for ordinal street
 		if self.is_ordinal(tokens[0]):
 			tokens[0] = self.standardize_ordinal_street_name(tokens[0])
+		elif tokens[0].isdigit():
+			tokens[0] = self.ordinalize(tokens[0])
 
 		return ' '.join(tokens)
 
@@ -202,7 +224,7 @@ class Parser:
 			del tokens[-1]
 
 			# Check if preceding token is numeral
-			if second_to_last_token and self.is_numeral(second_to_last_token):
+			if second_to_last_token and self.is_numeric(second_to_last_token):
 				unit_num = second_to_last_token
 				del tokens[-1]
 				
@@ -319,22 +341,22 @@ if __name__ == '__main__':
 
 	# JUST ONE
 
-	TEST = '12 41st St Dr'
-	print TEST
-	comps = parser.parse(TEST)
-	ordered = ', '.join([str(x) + ': ' + str(comps[x]) for x in FIELDS if comps[x]])
-	print ordered
-	print ' '.join([str(comps[x]) for x in FIELDS if comps[x]])	
+	# TEST = '12 41st St Dr'
+	# print TEST
+	# comps = parser.parse(TEST)
+	# ordered = ', '.join([str(x) + ': ' + str(comps[x]) for x in FIELDS if comps[x]])
+	# print ordered
+	# print ' '.join([str(comps[x]) for x in FIELDS if comps[x]])	
 
 
-	# VERBOSE
+	# MULTIPLE
 
 	# for a_test in TEST_ADDRS:
 	# 	print a_test
 	# 	comps = parser.parse(a_test)
+	# 	print ' '.join([str(comps[x]) for x in FIELDS if comps[x]])
 	# 	ordered = ', '.join([str(x) + ': ' + str(comps[x]) for x in FIELDS if comps[x]])
 	# 	print ordered
-	# 	print ' '.join([str(comps[x]) for x in FIELDS if comps[x]])
 	# 	print
 
 
@@ -345,3 +367,27 @@ if __name__ == '__main__':
 	# for i in range(0, 750000):
 	# 	parser.parse('1234 MARKET ST 80TH FLOOR')
 	# print 'Took {}'.format(datetime.now() - start)
+
+
+	# 311 FILE
+	path = "/Users/rmartin/Development/phladdress/meta/311addronly.csv"
+	start = 1000
+	stop = 1010
+	i = 0
+	with open(path) as f:
+		import csv
+		for row in csv.reader(f):
+			row = row[0]
+			if i < start:
+				i += 1
+				continue
+			if stop < i:
+				break
+			print row
+			comps = parser.parse(row)
+			print ' '.join([str(comps[x]) for x in FIELDS if comps[x]])
+			ordered = ', '.join([str(x) + ': ' + str(comps[x]) for x in FIELDS if comps[x]])
+			print ordered
+			print
+
+			i += 1

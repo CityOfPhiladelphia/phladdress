@@ -15,6 +15,9 @@ DIRS_STD = {
 
 DIRS = set(DIRS_STD.keys())
 
+'''
+ORDINALS
+'''
 
 LONG_ORDINALS_STD = {
 	'FIRST': '1ST',
