@@ -44,14 +44,13 @@ LONG_ORDINALS_STD = {
 STREET NAMES
 '''
 
-# Make list of street names that have a token from SUFFIXES_ALL
-	# Loop over distinct street names
-		# Split into tokens
-		# Loop over tokens
-			# If token in SUFFIXES ALL
-				# Add to watch list
+with open('./data/street_names_with_suffix.csv') as f:
+	reader = csv.DictReader(f)
+	STREET_NAMES_WITH_SUFFIX = set([x['STREET_NAME'] for x in reader])
 
-# List of streets that have a dir in the name?
+with open('./data/street_names_with_dir.csv') as f:
+	reader = csv.DictReader(f)
+	STREET_NAMES_WITH_DIR = set([x['STREET_NAME'] for x in reader])
 
 
 '''

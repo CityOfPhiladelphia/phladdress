@@ -1,5 +1,5 @@
 import re
-from phladdress.data import DIRS, DIRS_STD, SUFFIXES, SUFFIXES_STD, UNIT_TYPES, UNIT_TYPES_STD, LONG_ORDINALS_STD
+from phladdress.data import DIRS, DIRS_STD, SUFFIXES, SUFFIXES_STD, UNIT_TYPES, UNIT_TYPES_STD, LONG_ORDINALS_STD, STREET_NAMES_WITH_SUFFIX, STREET_NAMES_WITH_DIR
 
 # DEV
 from phladdress.test.test_addrs import TEST_ADDRS
@@ -15,6 +15,14 @@ NOTES
 #	101 S INDEPENDENCE MALL E
 # 	41ST ST DR
 #	1132 BIG ST REAR OFFICE
+
+# TODO
+	# intersections and PO boxes
+	# expand high range nums
+	# take non-addressable street names out of street_names_with_suffix (i.e. WHATEVER ST RAMP)
+	# handle garbage at end
+	# how should 41ST ST DR look in street_names_with_suffix?
+	# extra credit: expand suffixes in street names (e.g. 41ST ST DR => 41ST STREET DR)
 
 
 '''
@@ -92,7 +100,7 @@ class Parser:
 		if self.is_ordinal(tokens[0]):
 			tokens[0] = self.standardize_ordinal_street_name(tokens[0])
 
-		return tokens
+		return ' '.join(tokens)
 
 
 	def standardize_unit_num(self, unit_num):
@@ -124,9 +132,6 @@ class Parser:
 		Parse an address string into standardized components. This only does line 1 for now.
 		'''
 
-		# Components to return
-		comps = {}
-
 		# Lint
 		addr = self.lint(input_addr)
 
@@ -134,6 +139,7 @@ class Parser:
 			# Street address
 			# Intersection
 			# PO Box
+
 
 		'''
 		STREET NUM
@@ -144,7 +150,7 @@ class Parser:
 		# TODO: handle 1092 - 1100 RIDGE AVE
 		street_num_comps = street_num_re.match(input_addr).groupdict()
 		street_num_full = street_num_comps['full']
-		comps['street_num'] = street_num_comps if street_num_comps['high'] else street_num_full
+		street_num = street_num_comps if street_num_comps['high'] else street_num_full
 		
 		# Remove street num and tokenize
 		addr = addr[len(street_num_full) + 1:]
@@ -157,56 +163,49 @@ class Parser:
 
 		predir = None
 
-		# Check if first token is a directional
-		if tokens[0] in DIRS:
-			predir = tokens[0]
-			del tokens[0]
+		# Save the predir candidate so we can check later if it's a legit part of the street name
+		predir_candidate = tokens[0]
 
-		comps['predir'] = predir
+		# Check if first token is a directional
+		if predir_candidate in DIRS:
+			predir = predir_candidate
+			del tokens[0]
 
 
 		'''
 		UNIT
 		'''
 
-		# TODO: #8
+		# TODO: do we handle APTA, FL2?
 
 		unit_type = None
 		unit_num = None
 
-		# Get length of remaining tokens to make sure there are enough to hold a unit
-		token_len = len(tokens)
+		last_token = tokens[-1]
+		second_to_last_token = tokens[-2] if len(tokens) >= 2 else None
 
-		# Loop through unit types and compare to last two tokens
-		# If a match is found, store values and drop the unit-related tokens
+		# Case: #18
+		if last_token[0] == '#':
+			unit_type = '#'
+			unit_num = last_token[1:]
+			del tokens[-1]
 
-		# TODO: this might make more sense to do
-		# if tokens[-2] in UNIT_TYPES
-		# etc
+		# Case 1: FL 15
+		elif second_to_last_token and second_to_last_token in UNIT_TYPES:
+			unit_type = second_to_last_token
+			unit_num = last_token
+			del tokens[-2:]
 
-		for a_unit_type in UNIT_TYPES:
-			# Case 1: FL 15
-			if token_len >= 2 and a_unit_type == tokens[-2]:
-				unit_type = a_unit_type
-				unit_num = tokens[-1]
+		# Case 2: REAR or 15TH FLOOR or FIRST FLOOR
+		elif last_token in UNIT_TYPES:
+			unit_type = last_token
+			del tokens[-1]
 
-				del tokens[-2:]
-				break
-
-			# Case 2: REAR or 15TH FLOOR or FIRST FLOOR
-			if a_unit_type == tokens[-1]:
-				unit_type = a_unit_type
-
-				# Check if preceding token is a number or ordinal
-				if self.is_numeral(tokens[-2]):
-					unit_num = tokens[-2]
-
-					del tokens[-2:]
-					break
-
+			# Check if preceding token is numeral
+			if second_to_last_token and self.is_numeral(second_to_last_token):
+				unit_num = second_to_last_token
 				del tokens[-1]
-				break
-
+				
 
 		'''
 		POSTDIR
@@ -219,9 +218,6 @@ class Parser:
 			postdir = tokens[-1]
 			del tokens[-1]
 
-		comps['postdir'] = postdir
-
-
 		
 		'''
 		SUFFIX
@@ -229,42 +225,77 @@ class Parser:
 
 		suffix = None
 
-		if tokens[-1] in SUFFIXES:
+		# Check that remaining tokens aren't a protected street name
+		name_has_suffix_test = ' '.join(tokens)
+		name_has_suffix = name_has_suffix_test in STREET_NAMES_WITH_SUFFIX
+
+		if not name_has_suffix and tokens[-1] in SUFFIXES:
 			suffix = tokens[-1]
 			del tokens[-1]
-
-		# comps['suffix'] = suffix
 
 
 		'''
 		STREET NAME
 		'''
 
-		std_street_name_tokens = self.standardize_street_name(tokens)
-		street_name = ' '.join(std_street_name_tokens)
-		comps['street_name'] = street_name
+		# Predir precautions
+		if predir:
+			# If there are no tokens left, give up the predir
+			if len(tokens) == 0:
+				tokens = [predir]
+				predir = None
+
+			# Make sure the predir + remaining tokens aren't a protected name
+			else:
+				name_has_predir_tokens = [predir_candidate] + tokens
+				name_has_predir_test = ' '.join(name_has_predir_tokens)
+				name_has_predir = name_has_predir_test in STREET_NAMES_WITH_DIR
+
+				if name_has_predir:
+					tokens = name_has_predir_tokens
+					predir = None
 
 
 		'''
 		STANDARDIZE
 		'''
 
+		# Predir
+		predir = DIRS_STD[predir] if predir else None
+
 		# Street name
-		street_name = self.standardize_street_name(street_name)
+		street_name = self.standardize_street_name(tokens)
 
 		# Unit
+		unit = None
+
 		if unit_type:
 			unit_type = UNIT_TYPES_STD[unit_type]
 
 			if unit_num:
 				unit_num = self.standardize_unit_num(unit_num)
+				unit = ' '.join([unit_type, unit_num]) if unit_num else None
 
-		comps['unit'] = ' '.join([unit_type, unit_num]) if unit_num else None
+			else:
+				unit = unit_type
+				
 
 		# Suffix
-		comps['suffix'] = SUFFIXES_STD[suffix]
+		suffix = SUFFIXES_STD[suffix] if suffix else None
 
+		
+		'''
+		RETURN
+		'''
 
+		comps = {
+			'street_num': street_num,
+			'predir': predir,
+			'street_name': street_name,
+			'suffix': suffix,
+			'postdir': postdir,
+			'unit': unit
+		}
 
 		return comps
 
@@ -288,7 +319,7 @@ if __name__ == '__main__':
 
 	# JUST ONE
 
-	TEST = '1234 WEST MARKET STREET 80TH FLOOR'
+	TEST = '12 41st St Dr'
 	print TEST
 	comps = parser.parse(TEST)
 	ordered = ', '.join([str(x) + ': ' + str(comps[x]) for x in FIELDS if comps[x]])
