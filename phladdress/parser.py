@@ -1,5 +1,6 @@
 import re
-from phladdress.data import DIRS, DIRS_STD, SUFFIXES, SUFFIXES_STD, UNIT_TYPES, UNIT_TYPES_STD, LONG_ORDINALS_STD, STREET_NAMES_WITH_SUFFIX, STREET_NAMES_WITH_DIR
+from difflib import SequenceMatcher
+from phladdress.data import DIRS, DIRS_STD, SUFFIXES, SUFFIXES_STD, UNIT_TYPES, UNIT_TYPES_STD, LONG_ORDINALS_STD, STREET_NAMES_WITH_SUFFIX, STREET_NAMES_WITH_DIR, ABBRS, ABBRS_STD
 
 # DEV
 from phladdress.test.test_addrs import TEST_ADDRS
@@ -23,6 +24,7 @@ NOTES
 	# handle garbage at end
 	# how should 41ST ST DR look in street_names_with_suffix?
 	# extra credit: expand suffixes in street names (e.g. 41ST ST DR => 41ST STREET DR)
+	# expand words like CTR => CENTER?
 
 
 '''
@@ -95,6 +97,10 @@ class Parser:
 		return num + suffix
 
 
+	def calculate_similarity(self, a, b):
+	    return SequenceMatcher(None, a, b).ratio()
+
+
 	'''
 	STANDARDIZE
 	'''
@@ -113,14 +119,26 @@ class Parser:
 	def standardize_street_name(self, tokens):
 		'''
 		Standardize a street name
-		Note: this take tokens instead of a string so we don't have to split.
+		Note: this take tokens and returns a string. Is that weird?
 		'''
+
+		first_token = tokens[0]
 		
-		# Check for ordinal street
-		if self.is_ordinal(tokens[0]):
-			tokens[0] = self.standardize_ordinal_street_name(tokens[0])
-		elif tokens[0].isdigit():
-			tokens[0] = self.ordinalize(tokens[0])
+		# Check for ordinal street [high confidence]
+		if self.is_ordinal(first_token):
+			tokens[0] = self.standardize_ordinal_street_name(first_token)
+		elif first_token.isdigit():
+			tokens[0] = self.ordinalize(first_token)
+
+		# Check for saint [low confidence - these should probably go in the alias table]
+		# if first_token == 'ST':
+		# 	tokens[0] = 'SAINT'
+
+		# Check for common abbreviations
+		for i, token in enumerate(tokens):
+			if token in ABBRS:
+				tokens[i] = ABBRS_STD[token]
+		
 
 		return ' '.join(tokens)
 
@@ -301,7 +319,6 @@ class Parser:
 			else:
 				unit = unit_type
 				
-
 		# Suffix
 		suffix = SUFFIXES_STD[suffix] if suffix else None
 
@@ -310,13 +327,23 @@ class Parser:
 		RETURN
 		'''
 
+		# Concatenate comps
+		full_addr_comps = [street_num, predir, street_name, suffix, postdir, unit]
+		full_addr = ' '.join([comp for comp in full_addr_comps if comp])
+
+		# Get similarity
+		# similarity = self.calculate_similarity(input_addr, full_addr)
+		# similarity = round(similarity, 2)
+
 		comps = {
+			'full_addr': full_addr,
 			'street_num': street_num,
 			'predir': predir,
 			'street_name': street_name,
 			'suffix': suffix,
 			'postdir': postdir,
-			'unit': unit
+			'unit': unit,
+			# 'similarity': similarity,
 		}
 
 		return comps
@@ -329,24 +356,13 @@ TEST
 if __name__ == '__main__':
 	parser = Parser()
 
-	FIELDS = [
-		'street_num',
-		'predir',
-		'street_name',
-		'suffix',
-		'postdir',
-		'unit',
-	]
-
-
 	# JUST ONE
 
-	# TEST = '12 41st St Dr'
+	# TEST = '137 CENTER PARK RD'
 	# print TEST
 	# comps = parser.parse(TEST)
-	# ordered = ', '.join([str(x) + ': ' + str(comps[x]) for x in FIELDS if comps[x]])
-	# print ordered
-	# print ' '.join([str(comps[x]) for x in FIELDS if comps[x]])	
+	# print comps['full_addr']
+	# print comps
 
 
 	# MULTIPLE
@@ -365,7 +381,7 @@ if __name__ == '__main__':
 	# from datetime import datetime
 	# start = datetime.now()
 	# for i in range(0, 750000):
-	# 	parser.parse('1234 MARKET ST 80TH FLOOR')
+	# 	parser.parse('1234 MARKET ST')
 	# print 'Took {}'.format(datetime.now() - start)
 
 

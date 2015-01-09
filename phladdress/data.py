@@ -15,6 +15,7 @@ DIRS_STD = {
 
 DIRS = set(DIRS_STD.keys())
 
+
 '''
 ORDINALS
 '''
@@ -55,6 +56,15 @@ with open('./data/street_names_with_dir.csv') as f:
 	reader = csv.DictReader(f)
 	STREET_NAMES_WITH_DIR = set([x['STREET_NAME'] for x in reader])
 
+# Common abbreviations
+ABBRS_STD = {
+	'AVE': 'AVENUE',
+	'CTR': 'CENTER',
+	'MT': 'MOUNT',
+	'PK': 'PARK',
+}
+
+ABBRS = set(ABBRS_STD.keys())
 
 '''
 SUFFIXES
