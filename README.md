@@ -1,6 +1,6 @@
 # phladdress
 
-A high-performance address standardizer for the City of Philadelphia
+A high-performance address processing suite for the City of Philadelphia
 
 ## Overview
 

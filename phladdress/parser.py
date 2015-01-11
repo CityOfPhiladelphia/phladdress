@@ -1,8 +1,9 @@
 import re
 from difflib import SequenceMatcher
-from phladdress.data import DIRS, DIRS_STD, SUFFIXES, SUFFIXES_STD, UNIT_TYPES, UNIT_TYPES_STD, LONG_ORDINALS_STD, STREET_NAMES_WITH_SUFFIX, STREET_NAMES_WITH_DIR, ABBRS, ABBRS_STD
+from phladdress.data import *
 
 # DEV
+import sys
 from phladdress.test.test_addrs import TEST_ADDRS
 
 
@@ -18,6 +19,7 @@ NOTES
 #	1132 BIG ST REAR OFFICE
 
 # TODO
+	# Should street_names_common have a column for suffix? So 1234 THE PARKWAY => 1234 BENJAMIN FRANKLIN PKWY
 	# intersections and PO boxes
 	# expand high range nums
 	# take non-addressable street names out of street_names_with_suffix (i.e. WHATEVER ST RAMP)
@@ -35,6 +37,7 @@ intersection_re = re.compile('(?P<street_1>.*)(AND|&|AT|\+)(?P<street_2>)')
 # street_num_re = re.compile('(?P<full>(?P<low>\w+( (?P<low_fractional>1/2))?)(-(?P<high>\w+( (?P<high_fractional>1/2))?))?)')
 street_num_re = re.compile('(?P<full>(?P<low>\w+( 1/2)?)(-(?P<high>\w+( 1/2)?))?)')
 # zip_re = re.compile('(?P<full>(?P<zip_5>\d{5})(-(?P<zip_4>\d{4}))?)$')
+saints_re = re.compile('^(ST|SAINT) ({})'.format('|'.join(SAINTS)))
 
 
 class Parser:
@@ -45,7 +48,7 @@ class Parser:
 
 	def lint(self, addr):
 		'''
-		Remove extraneous punctuation and whitespace
+		Remove punctuation and extra whitespace
 		'''
 
 		addr = ' '.join(addr.split())
@@ -119,28 +122,39 @@ class Parser:
 	def standardize_street_name(self, tokens):
 		'''
 		Standardize a street name
-		Note: this take tokens and returns a string. Is that weird?
+		Note: this takes tokens and returns a string
 		'''
 
 		first_token = tokens[0]
 		
-		# Check for ordinal street [high confidence]
+		# Check for ordinals
 		if self.is_ordinal(first_token):
 			tokens[0] = self.standardize_ordinal_street_name(first_token)
+
 		elif first_token.isdigit():
 			tokens[0] = self.ordinalize(first_token)
 
-		# Check for saint [low confidence - these should probably go in the alias table]
-		# if first_token == 'ST':
-		# 	tokens[0] = 'SAINT'
-
-		# Check for common abbreviations
+		# Check for abbreviations
 		for i, token in enumerate(tokens):
 			if token in ABBRS:
 				tokens[i] = ABBRS_STD[token]
-		
 
-		return ' '.join(tokens)
+		# Checks after this use the concatenated string
+		street_name = ' '.join(tokens)
+		
+		# Check for common name
+		if street_name in STREET_NAMES_COMMON:
+			street_name = STREET_NAMES_COMMON_STD[street_name]
+
+		# Check for saint
+		saint_comps = saints_re.match(street_name)
+
+		if saint_comps:
+			saint = saint_comps.group(2)
+			saint = SAINTS_STD[saint]
+			street_name = 'SAINT {}'.format(saint)
+
+		return street_name
 
 
 	def standardize_unit_num(self, unit_num):
@@ -295,6 +309,8 @@ class Parser:
 					tokens = name_has_predir_tokens
 					predir = None
 
+		# TODO: should check suffix and postdir too, right?
+
 
 		'''
 		STANDARDIZE
@@ -336,8 +352,8 @@ class Parser:
 		# similarity = round(similarity, 2)
 
 		comps = {
-			'full_addr': full_addr,
-			'street_num': street_num,
+			'full_address': full_addr,
+			'street_number': street_num,
 			'predir': predir,
 			'street_name': street_name,
 			'suffix': suffix,
@@ -358,10 +374,10 @@ if __name__ == '__main__':
 
 	# JUST ONE
 
-	# TEST = '137 CENTER PARK RD'
+	# TEST = '1 CHRISTOPHER COLUMBUS EXPY'
 	# print TEST
 	# comps = parser.parse(TEST)
-	# print comps['full_addr']
+	# print comps['full_address']
 	# print comps
 
 
@@ -381,14 +397,14 @@ if __name__ == '__main__':
 	# from datetime import datetime
 	# start = datetime.now()
 	# for i in range(0, 750000):
-	# 	parser.parse('1234 MARKET ST')
+	# 	parser.parse('1234 W BEN FRANKLIN PKWY APT 4')
 	# print 'Took {}'.format(datetime.now() - start)
 
 
 	# 311 FILE
 
 	# path = "/Users/rmartin/Development/phladdress/meta/311addronly.csv"
-	# start = 10000
+	# start = 2000
 	# num = 10
 	# i = 0
 	# with open(path) as f:
@@ -403,9 +419,8 @@ if __name__ == '__main__':
 	# 			break
 	# 		print row
 	# 		comps = parser.parse(row)
-	# 		print ' '.join([str(comps[x]) for x in FIELDS if comps[x]])
-	# 		ordered = ', '.join([str(x) + ': ' + str(comps[x]) for x in FIELDS if comps[x]])
-	# 		print ordered
+	# 		print comps['full_address']
+	# 		print comps
 	# 		print
 
 	# 		i += 1
@@ -422,15 +437,18 @@ if __name__ == '__main__':
 	# count = 0
 
 	# with open(path) as f:
+	# 	reader = csv.reader(f)
+	# 	reader.next()
+
 	# 	for row in csv.reader(f):
 	# 		try:
 	# 			row = row[0]
 	# 			results = parser.parse(row)
 	# 		except:
 	# 			errors += 1
-	# 			import traceback
-	# 			print traceback.format_exc()
-	# 			raise
+	# 			# import traceback
+	# 			# print traceback.format_exc()
+	# 			# raise
 	# 		finally:
 	# 			count += 1
 

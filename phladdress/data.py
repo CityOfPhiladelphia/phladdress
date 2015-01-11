@@ -66,6 +66,40 @@ ABBRS_STD = {
 
 ABBRS = set(ABBRS_STD.keys())
 
+SAINTS_STD = {
+	'ALBAN': 'ALBANS',
+	'ANDREW': 'ANDREW',
+	'BERNARD': 'BERNARD',
+	'CHARLES': 'CHARLES',
+	'CHRISTOPHER': 'CHRISTOPHER',
+	'DAVID': 'DAVIDS',
+	'DENIS': 'DENIS',
+	'GEORGE': 'GEORGES',
+	'JAMES': 'JAMES',
+	'JOHN': 'JOHN',
+	'JOSEPH': 'JOSEPHS',
+	'LUKE': 'LUKES',
+	'MALACHY': 'MALACHYS',
+	'MARK': 'MARKS',
+	'MARTIN': 'MARTINS',
+	'MICHAEL': 'MICHAEL',
+	'PAUL': 'PAUL',
+	'PETER': 'PETERS',
+	'THOMAS': 'THOMAS',
+	'VINCENT': 'VINCENT',
+}
+
+SAINTS = set(SAINTS_STD.keys())
+
+# Street name common
+# This includes common nicknames and spelling errors
+with open('./data/street_names_common.csv') as f:
+	reader = csv.DictReader(f)
+	STREET_NAMES_COMMON_STD = {x['COMMON']: x['STANDARD'] for x in reader}
+
+STREET_NAMES_COMMON = set(STREET_NAMES_COMMON_STD.keys())
+
+
 '''
 SUFFIXES
 '''
