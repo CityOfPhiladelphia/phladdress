@@ -4,7 +4,7 @@ from phladdress.data import *
 
 # DEV
 import sys
-from phladdress.test.test_addrs import TEST_ADDRS
+# from phladdress.test.test_addrs import TEST_ADDRS
 
 
 '''
@@ -34,8 +34,8 @@ REGEX
 '''
 
 intersection_re = re.compile('(?P<street_1>.*)(AND|&|AT|\+)(?P<street_2>)')
-# street_num_re = re.compile('(?P<full>(?P<low>\w+( (?P<low_fractional>1/2))?)(-(?P<high>\w+( (?P<high_fractional>1/2))?))?)')
-street_num_re = re.compile('(?P<full>(?P<low>\w+( 1/2)?)(-(?P<high>\w+( 1/2)?))?)')
+street_num_re = re.compile('(?P<leading_zeros>0+)?(?P<full>(?P<low>\w+( (?P<low_fractional>1/2))?)(-(?P<high>\w+( (?P<high_fractional>1/2))?))?)')
+# street_num_re = re.compile('(?P<full>(?P<low>[1-9](\w+)?( 1/2)?)(-(?P<high>\w+( 1/2)?))?)')
 # zip_re = re.compile('(?P<full>(?P<zip_5>\d{5})(-(?P<zip_4>\d{4}))?)$')
 saints_re = re.compile('^(ST|SAINT) ({})'.format('|'.join(SAINTS)))
 
@@ -165,15 +165,15 @@ class Parser:
 		# Strip leading zeros
 		unit_num = unit_num.lstrip('0')
 
-		# 1ST => 1
-		if unit_num[:-2].isdigit():
+		if self.is_ordinal(unit_num):
+			# FIRST => 1
+			if unit_num in LONG_ORDINALS_STD:
+				std = LONG_ORDINALS_STD[unit_num]
+				return std[:-2]
+
+			# 1ST => 1
 			return unit_num[:-2]
-
-		# FIRST => 1
-		if unit_num in LONG_ORDINALS_STD:
-			std = LONG_ORDINALS_STD[unit_num]
-			return std[:-2]
-
+		
 		return unit_num
 
 
@@ -202,12 +202,18 @@ class Parser:
 		# This returns a string for a single address or a dictionary for a range
 		# TODO: this is kinda inconsistent, because it will parse out fractionals if it's a range but not otherwise
 		# TODO: handle 1092 - 1100 RIDGE AVE
-		street_num_comps = street_num_re.match(input_addr).groupdict()
+		street_num_comps = street_num_re.search(addr).groupdict()
 		street_num_full = street_num_comps['full']
 		street_num = street_num_comps if street_num_comps['high'] else street_num_full
-		
+
+		# Get length of original street num
+		street_num_len = len(street_num)
+		leading_zeros = street_num_comps.get('leading_zeros')
+		if leading_zeros:
+			street_num_len += len(leading_zeros)
+
 		# Remove street num and tokenize
-		addr = addr[len(street_num_full) + 1:]
+		addr = addr[street_num_len + 1:]
 		tokens = addr.split()
 
 
@@ -235,31 +241,35 @@ class Parser:
 		unit_type = None
 		unit_num = None
 
-		last_token = tokens[-1]
-		second_to_last_token = tokens[-2] if len(tokens) >= 2 else None
+		len_tokens = len(tokens)
+		last_token = tokens[-1] if len_tokens >= 2 else None
 
-		# Case: #18
-		if last_token[0] == '#':
-			unit_type = '#'
-			unit_num = last_token[1:]
-			del tokens[-1]
+		if last_token:
+			# Only take the second-to-last token if there at least 3 tokens total (test case: 1 FRONT ST)
+			second_to_last_token = tokens[-2] if len(tokens) >= 3 else None
 
-		# Case 1: FL 15
-		elif second_to_last_token and second_to_last_token in UNIT_TYPES:
-			unit_type = second_to_last_token
-			unit_num = last_token
-			del tokens[-2:]
-
-		# Case 2: REAR or 15TH FLOOR or FIRST FLOOR
-		elif last_token in UNIT_TYPES:
-			unit_type = last_token
-			del tokens[-1]
-
-			# Check if preceding token is numeral
-			if second_to_last_token and self.is_numeric(second_to_last_token):
-				unit_num = second_to_last_token
+			# Case: #18
+			if last_token[0] == '#':
+				unit_type = '#'
+				unit_num = last_token[1:]
 				del tokens[-1]
-				
+
+			# Case 1: FL 15
+			elif second_to_last_token and second_to_last_token in UNIT_TYPES:
+				unit_type = second_to_last_token
+				unit_num = last_token
+				del tokens[-2:]
+
+			# Case 2: REAR or 15TH FLOOR or FIRST FLOOR
+			elif last_token in UNIT_TYPES:
+				unit_type = last_token
+				del tokens[-1]
+
+				# Check if preceding token is numeral
+				if second_to_last_token and self.is_numeric(second_to_last_token):
+					unit_num = second_to_last_token
+					del tokens[-1]
+					
 
 		'''
 		POSTDIR
@@ -286,6 +296,8 @@ class Parser:
 		if not name_has_suffix and tokens[-1] in SUFFIXES:
 			suffix = tokens[-1]
 			del tokens[-1]
+
+		# TODO: this is capturing the AVE of 7015 RIDGE AVE as part of the street name
 
 
 		'''
@@ -319,8 +331,8 @@ class Parser:
 		# Predir
 		predir = DIRS_STD[predir] if predir else None
 
-		# Street name
-		street_name = self.standardize_street_name(tokens)
+		# Suffix
+		suffix = SUFFIXES_STD[suffix] if suffix else None
 
 		# Unit
 		unit = None
@@ -334,9 +346,9 @@ class Parser:
 
 			else:
 				unit = unit_type
-				
-		# Suffix
-		suffix = SUFFIXES_STD[suffix] if suffix else None
+		
+		# Street name
+		street_name = self.standardize_street_name(tokens)
 
 		
 		'''
@@ -372,13 +384,13 @@ TEST
 if __name__ == '__main__':
 	parser = Parser()
 
-	# JUST ONE
+# 	# JUST ONE
 
-	# TEST = '1 CHRISTOPHER COLUMBUS EXPY'
-	# print TEST
-	# comps = parser.parse(TEST)
-	# print comps['full_address']
-	# print comps
+	TEST = '104 RIDGE AVE'
+	print TEST
+	comps = parser.parse(TEST)
+	print comps['full_address']
+	print comps
 
 
 	# MULTIPLE
@@ -396,8 +408,8 @@ if __name__ == '__main__':
 
 	# from datetime import datetime
 	# start = datetime.now()
-	# for i in range(0, 750000):
-	# 	parser.parse('1234 W BEN FRANKLIN PKWY APT 4')
+	# for i in range(0, 1000000):
+	# 	parser.parse('00717  S CHRIS COLUMBUS BLV #407')
 	# print 'Took {}'.format(datetime.now() - start)
 
 

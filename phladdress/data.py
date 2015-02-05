@@ -1,4 +1,5 @@
 import csv
+import os
 
 DIRS_STD = {
 	'N': 'N',
@@ -48,11 +49,12 @@ LONG_ORDINALS_STD = {
 STREET NAMES
 '''
 
-with open('./data/street_names_with_suffix.csv') as f:
+# with open('./data/street_names_with_suffix.csv') as f:
+with open(os.path.join(os.path.dirname(__file__), './data/street_names_with_suffix.csv')) as f:
 	reader = csv.DictReader(f)
 	STREET_NAMES_WITH_SUFFIX = set([x['STREET_NAME'] for x in reader])
 
-with open('./data/street_names_with_dir.csv') as f:
+with open(os.path.join(os.path.dirname(__file__), './data/street_names_with_dir.csv')) as f:
 	reader = csv.DictReader(f)
 	STREET_NAMES_WITH_DIR = set([x['STREET_NAME'] for x in reader])
 
@@ -76,7 +78,8 @@ SAINTS_STD = {
 	'DENIS': 'DENIS',
 	'GEORGE': 'GEORGES',
 	'JAMES': 'JAMES',
-	'JOHN': 'JOHN',
+	# 'JOHN': 'JOHN',
+	'JOHN NEUMANN': 'JOHN NEUMANN',
 	'JOSEPH': 'JOSEPHS',
 	'LUKE': 'LUKES',
 	'MALACHY': 'MALACHYS',
@@ -93,7 +96,7 @@ SAINTS = set(SAINTS_STD.keys())
 
 # Street name common
 # This includes common nicknames and spelling errors
-with open('./data/street_names_common.csv') as f:
+with open(os.path.join(os.path.dirname(__file__), './data/street_names_common.csv')) as f:
 	reader = csv.DictReader(f)
 	STREET_NAMES_COMMON_STD = {x['COMMON']: x['STANDARD'] for x in reader}
 
@@ -105,7 +108,7 @@ SUFFIXES
 '''
 
 # Make suffix lists
-with open('./data/suffixes.csv') as f:
+with open(os.path.join(os.path.dirname(__file__), './data/suffixes.csv')) as f:
 	reader = csv.DictReader(f)
 
 	# Dict to convert common suffixes to standard
@@ -119,7 +122,7 @@ with open('./data/suffixes.csv') as f:
 UNIT TYPES
 '''
 
-with open('./data/unit_types.csv') as f:
+with open(os.path.join(os.path.dirname(__file__), './data/unit_types.csv')) as f:
 	reader = csv.DictReader(f)
 
 	# Dict to convert common unit types to standard
