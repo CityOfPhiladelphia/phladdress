@@ -357,7 +357,10 @@ class Parser:
 
 		# Concatenate comps
 		full_addr_comps = [street_num, predir, street_name, suffix, postdir, unit]
-		full_addr = ' '.join([comp for comp in full_addr_comps if comp])
+		full_addr = ' '.join([str(comp) for comp in full_addr_comps if comp])
+
+		street_full_comps = [predir, street_name, suffix, postdir]
+		street_full = ' '.join([str(comp) for comp in street_full_comps if comp])
 
 		# Get similarity
 		# similarity = self.calculate_similarity(input_addr, full_addr)
@@ -365,6 +368,7 @@ class Parser:
 
 		comps = {
 			'full_address': full_addr,
+			'street_full': street_full,
 			'street_number': street_num,
 			'predir': predir,
 			'street_name': street_name,
@@ -381,16 +385,16 @@ class Parser:
 TEST
 '''
 
-if __name__ == '__main__':
-	parser = Parser()
+# if __name__ == '__main__':
+# 	parser = Parser()
 
-# 	# JUST ONE
+	# JUST ONE
 
-	TEST = '104 RIDGE AVE'
-	print TEST
-	comps = parser.parse(TEST)
-	print comps['full_address']
-	print comps
+	# TEST = '1234 markett st'
+	# print TEST
+	# comps = parser.parse(TEST)
+	# print comps['full_address']
+	# print comps
 
 
 	# MULTIPLE
