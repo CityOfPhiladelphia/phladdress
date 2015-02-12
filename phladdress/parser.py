@@ -33,9 +33,10 @@ NOTES
 REGEX
 '''
 
-intersection_re = re.compile('(?P<street_1>.*)(AND|&|AT|\+)(?P<street_2>)')
-street_num_re = re.compile('(?P<leading_zeros>0+)?(?P<full>(?P<low>\w+( (?P<low_fractional>1/2))?)(-(?P<high>\w+( (?P<high_fractional>1/2))?))?)')
+# street_num_re = re.compile('(?P<leading_zeros>0+)?(?P<full>(?P<low>\w+( (?P<low_fractional>1/2))?)(-(?P<high>\w+( (?P<high_fractional>1/2))?))?)')
 # street_num_re = re.compile('(?P<full>(?P<low>[1-9](\w+)?( 1/2)?)(-(?P<high>\w+( 1/2)?))?)')
+street_num_re = re.compile('(?P<leading_zeros>0+)?(?P<full>(?P<low>\d\w+( (?P<low_fractional>1/2))?)(-(?P<high>\w+( (?P<high_fractional>1/2))?))?)')  # Require leading num
+intersection_re = re.compile('(?P<street_1>.*)(AND|&|AT|\+)(?P<street_2>)')
 # zip_re = re.compile('(?P<full>(?P<zip_5>\d{5})(-(?P<zip_4>\d{4}))?)$')
 saints_re = re.compile('^(ST|SAINT) ({})'.format('|'.join(SAINTS)))
 
@@ -202,18 +203,24 @@ class Parser:
 		# This returns a string for a single address or a dictionary for a range
 		# TODO: this is kinda inconsistent, because it will parse out fractionals if it's a range but not otherwise
 		# TODO: handle 1092 - 1100 RIDGE AVE
-		street_num_comps = street_num_re.search(addr).groupdict()
-		street_num_full = street_num_comps['full']
-		street_num = street_num_comps if street_num_comps['high'] else street_num_full
+		street_num_search = street_num_re.search(addr)
+		street_num = None
 
-		# Get length of original street num
-		street_num_len = len(street_num)
-		leading_zeros = street_num_comps.get('leading_zeros')
-		if leading_zeros:
-			street_num_len += len(leading_zeros)
+		# Check if there is a street num
+		if street_num_search:
+			street_num_comps = street_num_search.groupdict()
+			street_num_full = street_num_comps['full']
+			street_num = street_num_comps if street_num_comps['high'] else street_num_full
 
-		# Remove street num and tokenize
-		addr = addr[street_num_len + 1:]
+			# Get length of original street num
+			street_num_len = len(street_num)
+			leading_zeros = street_num_comps.get('leading_zeros')
+			if leading_zeros:
+				street_num_len += len(leading_zeros)
+
+			# Remove street num and tokenize
+			addr = addr[street_num_len + 1:]
+		
 		tokens = addr.split()
 
 
@@ -390,7 +397,7 @@ TEST
 
 	# JUST ONE
 
-	# TEST = '1234 markett st'
+	# TEST = 'w market st'
 	# print TEST
 	# comps = parser.parse(TEST)
 	# print comps['full_address']
