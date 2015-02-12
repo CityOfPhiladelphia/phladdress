@@ -33,9 +33,16 @@ NOTES
 REGEX
 '''
 
-# street_num_re = re.compile('(?P<leading_zeros>0+)?(?P<full>(?P<low>\w+( (?P<low_fractional>1/2))?)(-(?P<high>\w+( (?P<high_fractional>1/2))?))?)')
+# Street num
 # street_num_re = re.compile('(?P<full>(?P<low>[1-9](\w+)?( 1/2)?)(-(?P<high>\w+( 1/2)?))?)')
-street_num_re = re.compile('(?P<leading_zeros>0+)?(?P<full>(?P<low>\d\w+( (?P<low_fractional>1/2))?)(-(?P<high>\w+( (?P<high_fractional>1/2))?))?)')  # Require leading num
+# street_num_re = re.compile('(?P<leading_zeros>0+)?(?P<full>(?P<low>\w+( (?P<low_fractional>1/2))?)(-(?P<high>\w+( (?P<high_fractional>1/2))?))?)')
+low_num_pat = '(?P<low>(?P<low_num>\d+)(?P<low_suffix>[A-Z]?(?![\w]))(( )(?P<low_fractional>1/2))?)'
+hyphen_pat = '((?<= )?-(?= )?)?'
+high_num_pat = '(?P<high>(?P<high_num>\d+)(<?P<high_suffix>[A-Z]?(?![\w]))(( )(?P<high_fractional>1/2))?)?'
+street_num_pat = '(?P<full>' + low_num_pat + hyphen_pat + high_num_pat + ')'
+street_num_re = re.compile(street_num_pat)
+
+# Misc
 intersection_re = re.compile('(?P<street_1>.*)(AND|&|AT|\+)(?P<street_2>)')
 # zip_re = re.compile('(?P<full>(?P<zip_5>\d{5})(-(?P<zip_4>\d{4}))?)$')
 saints_re = re.compile('^(ST|SAINT) ({})'.format('|'.join(SAINTS)))
@@ -306,7 +313,6 @@ class Parser:
 
 		# TODO: this is capturing the AVE of 7015 RIDGE AVE as part of the street name
 
-
 		'''
 		STREET NAME
 		'''
@@ -397,7 +403,7 @@ TEST
 
 	# JUST ONE
 
-	# TEST = 'w market st'
+	# TEST = '54TH DR'
 	# print TEST
 	# comps = parser.parse(TEST)
 	# print comps['full_address']
