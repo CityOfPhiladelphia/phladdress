@@ -33,6 +33,23 @@ NOTES
 REGEX
 '''
 
+class ReGroup:
+	'Generic class for named regex groups'
+
+	def __init__(self, name, pattern):
+		self.name = name
+		self.pattern = pattern
+
+	def __str__(self):
+		return '(?P<{}>{})'.format(self.name, self.pattern)
+
+	def __add__(self, x):
+		return '{}{}'.format(self, x)
+
+# Make groups
+
+
+
 # Street num
 # street_num_re = re.compile('(?P<full>(?P<low>[1-9](\w+)?( 1/2)?)(-(?P<high>\w+( 1/2)?))?)')
 # street_num_re = re.compile('(?P<leading_zeros>0+)?(?P<full>(?P<low>\w+( (?P<low_fractional>1/2))?)(-(?P<high>\w+( (?P<high_fractional>1/2))?))?)')
@@ -43,7 +60,7 @@ street_num_pat = '(?P<full>' + low_num_pat + hyphen_pat + high_num_pat + ')'
 street_num_re = re.compile(street_num_pat)
 
 # Misc
-intersection_re = re.compile('(?P<street_1>.*)(AND|&|AT|\+)(?P<street_2>)')
+intersection_re = re.compile('(?P<street_1>.*)(AND|&|AT)(?P<street_2>)')
 # zip_re = re.compile('(?P<full>(?P<zip_5>\d{5})(-(?P<zip_4>\d{4}))?)$')
 saints_re = re.compile('^(ST|SAINT) ({})'.format('|'.join(SAINTS)))
 
@@ -207,9 +224,7 @@ class Parser:
 		STREET NUM
 		'''
 
-		# This returns a string for a single address or a dictionary for a range
-		# TODO: this is kinda inconsistent, because it will parse out fractionals if it's a range but not otherwise
-		# TODO: handle 1092 - 1100 RIDGE AVE
+		# Returns a dict of primary address components
 		street_num_search = street_num_re.search(addr)
 		street_num = None
 
@@ -303,15 +318,22 @@ class Parser:
 
 		suffix = None
 
-		# Check that remaining tokens aren't a protected street name
-		name_has_suffix_test = ' '.join(tokens)
-		name_has_suffix = name_has_suffix_test in STREET_NAMES_WITH_SUFFIX
-
-		if not name_has_suffix and tokens[-1] in SUFFIXES:
+		# Approach 1: just parse it
+		if tokens[-1] in SUFFIXES:
 			suffix = tokens[-1]
 			del tokens[-1]
 
+		# Approach 2: check for suffix in name
 		# TODO: this is capturing the AVE of 7015 RIDGE AVE as part of the street name
+
+		# Check that remaining tokens aren't a protected street name
+		# name_has_suffix_test = ' '.join(tokens)
+		# name_has_suffix = name_has_suffix_test in STREET_NAMES_WITH_SUFFIX
+
+		# if not name_has_suffix and tokens[-1] in SUFFIXES:
+		# 	suffix = tokens[-1]
+		# 	del tokens[-1]
+
 
 		'''
 		STREET NAME
@@ -380,9 +402,9 @@ class Parser:
 		# similarity = round(similarity, 2)
 
 		comps = {
-			'full_address': full_addr,
+			'address_full': full_addr,
 			'street_full': street_full,
-			'street_number': street_num,
+			'address': street_num,
 			'predir': predir,
 			'street_name': street_name,
 			'suffix': suffix,
@@ -398,16 +420,16 @@ class Parser:
 TEST
 '''
 
-# if __name__ == '__main__':
-# 	parser = Parser()
+if __name__ == '__main__':
+	parser = Parser()
 
 	# JUST ONE
 
-	# TEST = '54TH DR'
-	# print TEST
-	# comps = parser.parse(TEST)
-	# print comps['full_address']
-	# print comps
+	TEST = '51-3 54TH DR'
+	print TEST
+	comps = parser.parse(TEST)
+	print comps['address_full']
+	print comps
 
 
 	# MULTIPLE

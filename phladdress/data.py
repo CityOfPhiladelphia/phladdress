@@ -50,9 +50,9 @@ STREET NAMES
 '''
 
 # with open('./data/street_names_with_suffix.csv') as f:
-with open(os.path.join(os.path.dirname(__file__), './data/street_names_with_suffix.csv')) as f:
-	reader = csv.DictReader(f)
-	STREET_NAMES_WITH_SUFFIX = set([x['STREET_NAME'] for x in reader])
+# with open(os.path.join(os.path.dirname(__file__), './data/street_names_with_suffix.csv')) as f:
+# 	reader = csv.DictReader(f)
+# 	STREET_NAMES_WITH_SUFFIX = set([x['STREET_NAME'] for x in reader])
 
 with open(os.path.join(os.path.dirname(__file__), './data/street_names_with_dir.csv')) as f:
 	reader = csv.DictReader(f)
