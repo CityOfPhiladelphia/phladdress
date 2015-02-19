@@ -241,9 +241,12 @@ class Parser:
 
 					street_num_comps['high_num_full'] = high_full
 
-			# Make nums integers
-			for x in ['low_num', 'high_num', 'high_num_full']:
-				street_num_comps[x] = int(street_num_comps[x])
+				# Return ints
+				street_num_comps['high_num'] = int(street_num_comps['high_num'])
+				street_num_comps['high_num_full'] = int(street_num_comps['high_num_full'])
+
+			# Make int
+			street_num_comps['low_num'] = int(street_num_comps['low_num'])
 
 			# Remove street num
 			addr = street_num_re.sub('', addr)[1:]
@@ -436,18 +439,18 @@ class Parser:
 TEST
 '''
 
-# if __name__ == '__main__':
-	# parser = Parser()
+if __name__ == '__main__':
+	parser = Parser()
 
-	# test = [
-	# 	'1234-36 MARKET ST',
-	# 	# '1234A-38C EAST FALLS BLV',
-	# ]
-	# for a_test in test:
-	# 	print a_test
-	# 	comps = parser.parse(a_test)
-	# 	print pprint(comps)
-	# 	print ''
+	test = [
+		'5339 REINHARD ST',
+		# '1234A-38C EAST FALLS BLV',
+	]
+	for a_test in test:
+		print a_test
+		comps = parser.parse(a_test)
+		print pprint(comps)
+		print ''
 
 
 	# MULTIPLE
