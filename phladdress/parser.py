@@ -4,6 +4,7 @@ from phladdress.data import *
 
 # DEV
 import sys
+from pprint import pprint
 # from phladdress.test.test_addrs import TEST_ADDRS
 
 
@@ -240,6 +241,10 @@ class Parser:
 
 					street_num_comps['high_num_full'] = high_full
 
+			# Make nums integers
+			for x in ['low_num', 'high_num', 'high_num_full']:
+				street_num_comps[x] = int(street_num_comps[x])
+
 			# Remove street num
 			addr = street_num_re.sub('', addr)[1:]
 		
@@ -432,19 +437,17 @@ TEST
 '''
 
 # if __name__ == '__main__':
-# 	parser = Parser()
+	# parser = Parser()
 
-# 	test = [
-# 		'1234-36 MARKET ST',
-# 		# '1234A-38C EAST FALLS BLV',
-# 	]
-# 	for a_test in test:
-# 		print a_test
-# 		comps = parser.parse(a_test)
-# 		from pprint import pprint
-# 		print pprint(comps)
-
-# 		print ''
+	# test = [
+	# 	'1234-36 MARKET ST',
+	# 	# '1234A-38C EAST FALLS BLV',
+	# ]
+	# for a_test in test:
+	# 	print a_test
+	# 	comps = parser.parse(a_test)
+	# 	print pprint(comps)
+	# 	print ''
 
 
 	# MULTIPLE
