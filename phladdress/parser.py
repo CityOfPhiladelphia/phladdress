@@ -233,7 +233,7 @@ class Parser:
 
 				# Handle potentially wacky high nums
 				if len_high <= len(low):
-					high_full = low[:len_high] + high
+					high_full = low[:-len_high] + high
 					
 					if high_full < low:
 						raise Exception('Invalid address range: {}'.format(street_num))
@@ -435,7 +435,8 @@ TEST
 # 	parser = Parser()
 
 # 	test = [
-# 		'1234A-38C EAST FALLS BLVD',
+# 		'1234-36 MARKET ST',
+# 		# '1234A-38C EAST FALLS BLV',
 # 	]
 # 	for a_test in test:
 # 		print a_test
