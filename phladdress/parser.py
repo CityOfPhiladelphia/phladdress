@@ -33,29 +33,12 @@ NOTES
 REGEX
 '''
 
-class ReGroup:
-	'Generic class for named regex groups'
-
-	def __init__(self, name, pattern):
-		self.name = name
-		self.pattern = pattern
-
-	def __str__(self):
-		return '(?P<{}>{})'.format(self.name, self.pattern)
-
-	def __add__(self, x):
-		return '{}{}'.format(self, x)
-
-# Make groups
-
-
-
 # Street num
 # street_num_re = re.compile('(?P<full>(?P<low>[1-9](\w+)?( 1/2)?)(-(?P<high>\w+( 1/2)?))?)')
 # street_num_re = re.compile('(?P<leading_zeros>0+)?(?P<full>(?P<low>\w+( (?P<low_fractional>1/2))?)(-(?P<high>\w+( (?P<high_fractional>1/2))?))?)')
 low_num_pat = '(?P<low>(?P<low_num>\d+)(?P<low_suffix>[A-Z]?(?![\w]))(( )(?P<low_fractional>1/2))?)'
 hyphen_pat = '((?<= )?-(?= )?)?'
-high_num_pat = '(?P<high>(?P<high_num>\d+)(<?P<high_suffix>[A-Z]?(?![\w]))(( )(?P<high_fractional>1/2))?)?'
+high_num_pat = '(?P<high>(?P<high_num>\d+)(?P<high_suffix>[A-Z]?(?![\w]))(( )(?P<high_fractional>1/2))?)?'
 street_num_pat = '(?P<full>' + low_num_pat + hyphen_pat + high_num_pat + ')'
 street_num_re = re.compile(street_num_pat)
 
@@ -65,7 +48,12 @@ intersection_re = re.compile('(?P<street_1>.*)(AND|&|AT)(?P<street_2>)')
 saints_re = re.compile('^(ST|SAINT) ({})'.format('|'.join(SAINTS)))
 
 
+'''
+PARSER
+'''
+
 class Parser:
+	'Address parser'
 
 	'''
 	UTILITY FUNCTIONS
@@ -214,10 +202,8 @@ class Parser:
 		# Lint
 		addr = self.lint(input_addr)
 
-		# TODO: Determine address type
-			# Street address
-			# Intersection
-			# PO Box
+		# Address type: single address, range, P.O. box, or intersection
+		addr_type = None
 
 
 		'''
@@ -225,24 +211,39 @@ class Parser:
 		'''
 
 		# Returns a dict of primary address components
-		street_num_search = street_num_re.search(addr)
+		street_num_search = street_num_re.search(addr)		
 		street_num = None
+		street_num_comps = None
 
-		# Check if there is a street num
+		# Check if there's a street num
 		if street_num_search:
 			street_num_comps = street_num_search.groupdict()
-			street_num_full = street_num_comps['full']
-			street_num = street_num_comps if street_num_comps['high'] else street_num_full
+			street_num = street_num_comps['full']
 
-			# Get length of original street num
-			street_num_len = len(street_num)
-			leading_zeros = street_num_comps.get('leading_zeros')
-			if leading_zeros:
-				street_num_len += len(leading_zeros)
+			# Single address
+			if not street_num_comps['high']:
+				addr_type = 'single'
 
-			# Remove street num and tokenize
-			addr = addr[street_num_len + 1:]
+			# Range
+			else:
+				addr_type = 'high'
+				low = street_num_comps['low_num']
+				high = str(street_num_comps['high_num'])
+				len_high = len(high)
+
+				# Handle potentially wacky high nums
+				if len_high <= len(low):
+					high_full = low[:len_high] + high
+					
+					if high_full < low:
+						raise Exception('Invalid address range: {}'.format(street_num))
+
+					street_num_comps['high_num_full'] = high_full
+
+			# Remove street num
+			addr = street_num_re.sub('', addr)[1:]
 		
+		# Tokenize
 		tokens = addr.split()
 
 
@@ -394,22 +395,32 @@ class Parser:
 		full_addr_comps = [street_num, predir, street_name, suffix, postdir, unit]
 		full_addr = ' '.join([str(comp) for comp in full_addr_comps if comp])
 
-		street_full_comps = [predir, street_name, suffix, postdir]
-		street_full = ' '.join([str(comp) for comp in street_full_comps if comp])
+		# street_full_comps = [predir, street_name, suffix, postdir]
+		# street_full = ' '.join([str(comp) for comp in street_full_comps if comp])
+		street_full_comps = {
+			'predir': predir,
+			'name': street_name,
+			'suffix': suffix,
+			'postdir': postdir,
+		}
+		street_full_comps['full'] = full_addr
 
 		# Get similarity
 		# similarity = self.calculate_similarity(input_addr, full_addr)
 		# similarity = round(similarity, 2)
 
 		comps = {
-			'address_full': full_addr,
-			'street_full': street_full,
-			'address': street_num,
-			'predir': predir,
-			'street_name': street_name,
-			'suffix': suffix,
-			'postdir': postdir,
-			'unit': unit,
+			'type': addr_type,
+			'street_address': full_addr,
+			'address': street_num_comps,
+			'street': street_full_comps,
+			# 'street_full': street_full,
+			# 'address': street_num,
+			# 'predir': predir,
+			# 'street_name': street_name,
+			# 'suffix': suffix,
+			# 'postdir': postdir,
+			# 'unit': unit,
 			# 'similarity': similarity,
 		}
 
@@ -423,13 +434,16 @@ TEST
 if __name__ == '__main__':
 	parser = Parser()
 
-	# JUST ONE
+	test = [
+		'1234A-38C EAST FALLS BLVD',
+	]
+	for a_test in test:
+		print a_test
+		comps = parser.parse(a_test)
+		from pprint import pprint
+		print pprint(comps)
 
-	TEST = '51-3 54TH DR'
-	print TEST
-	comps = parser.parse(TEST)
-	print comps['address_full']
-	print comps
+		print ''
 
 
 	# MULTIPLE
@@ -443,7 +457,7 @@ if __name__ == '__main__':
 	# 	print
 
 
-	# TIME
+	# TIME TRIAL
 
 	# from datetime import datetime
 	# start = datetime.now()
