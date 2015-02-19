@@ -395,15 +395,15 @@ class Parser:
 		full_addr_comps = [street_num, predir, street_name, suffix, postdir, unit]
 		full_addr = ' '.join([str(comp) for comp in full_addr_comps if comp])
 
-		# street_full_comps = [predir, street_name, suffix, postdir]
-		# street_full = ' '.join([str(comp) for comp in street_full_comps if comp])
+		street_full_comps = [predir, street_name, suffix, postdir]
+		street_full = ' '.join([str(comp) for comp in street_full_comps if comp])
 		street_full_comps = {
 			'predir': predir,
 			'name': street_name,
 			'suffix': suffix,
 			'postdir': postdir,
 		}
-		street_full_comps['full'] = full_addr
+		street_full_comps['full'] = street_full
 
 		# Get similarity
 		# similarity = self.calculate_similarity(input_addr, full_addr)
@@ -431,19 +431,19 @@ class Parser:
 TEST
 '''
 
-if __name__ == '__main__':
-	parser = Parser()
+# if __name__ == '__main__':
+# 	parser = Parser()
 
-	test = [
-		'1234A-38C EAST FALLS BLVD',
-	]
-	for a_test in test:
-		print a_test
-		comps = parser.parse(a_test)
-		from pprint import pprint
-		print pprint(comps)
+# 	test = [
+# 		'1234A-38C EAST FALLS BLVD',
+# 	]
+# 	for a_test in test:
+# 		print a_test
+# 		comps = parser.parse(a_test)
+# 		from pprint import pprint
+# 		print pprint(comps)
 
-		print ''
+# 		print ''
 
 
 	# MULTIPLE
