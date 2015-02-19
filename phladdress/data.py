@@ -61,6 +61,7 @@ with open(os.path.join(os.path.dirname(__file__), './data/street_names_with_dir.
 # Common abbreviations
 ABBRS_STD = {
 	'AVE': 'AVENUE',
+	'CRK': 'CREEK',
 	'CTR': 'CENTER',
 	'MT': 'MOUNT',
 	'PK': 'PARK',
