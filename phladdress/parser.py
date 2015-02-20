@@ -236,8 +236,8 @@ class Parser:
 				if len_high <= len(low):
 					high_full = low[:-len_high] + high
 					
-					if high_full < low:
-						raise Exception('Invalid address range: {}'.format(street_num))
+					# if high_full < low:
+					# 	raise Exception('Invalid address range: {}'.format(street_num))
 
 					street_num_comps['high_num_full'] = high_full
 
@@ -410,8 +410,8 @@ class Parser:
 			'name': street_name,
 			'suffix': suffix,
 			'postdir': postdir,
+			'full': street_full
 		}
-		street_full_comps['full'] = street_full
 
 		# Get similarity
 		# similarity = self.calculate_similarity(input_addr, full_addr)
@@ -439,18 +439,17 @@ class Parser:
 TEST
 '''
 
-if __name__ == '__main__':
-	parser = Parser()
+# if __name__ == '__main__':
+# 	parser = Parser()
 
-	test = [
-		'5339 REINHARD ST',
-		# '1234A-38C EAST FALLS BLV',
-	]
-	for a_test in test:
-		print a_test
-		comps = parser.parse(a_test)
-		print pprint(comps)
-		print ''
+# 	test = [
+		# '3036 N SWANSON ST',
+	# ]
+	# for a_test in test:
+	# 	print a_test
+	# 	comps = parser.parse(a_test)
+	# 	print pprint(comps)
+	# 	print ''
 
 
 	# MULTIPLE
