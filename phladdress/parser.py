@@ -233,17 +233,19 @@ class Parser:
 				len_high = len(high)
 
 				# Handle potentially wacky high nums
+				high_full = None
+
 				if len_high <= len(low):
 					high_full = low[:-len_high] + high
 					
 					# if high_full < low:
 					# 	raise Exception('Invalid address range: {}'.format(street_num))
 
-					street_num_comps['high_num_full'] = high_full
+					high_full = int(high_full)
 
 				# Return ints
 				street_num_comps['high_num'] = int(street_num_comps['high_num'])
-				street_num_comps['high_num_full'] = int(street_num_comps['high_num_full'])
+				street_num_comps['high_num_full'] = high_full
 
 			# Make int
 			street_num_comps['low_num'] = int(street_num_comps['low_num'])
@@ -443,13 +445,13 @@ TEST
 # 	parser = Parser()
 
 # 	test = [
-		# '3036 N SWANSON ST',
-	# ]
-	# for a_test in test:
-	# 	print a_test
-	# 	comps = parser.parse(a_test)
-	# 	print pprint(comps)
-	# 	print ''
+# 		'237-3700 CECIL B MOORE AVE',
+# 	]
+# 	for a_test in test:
+# 		print a_test
+# 		comps = parser.parse(a_test)
+# 		print pprint(comps)
+# 		print ''
 
 
 	# MULTIPLE
