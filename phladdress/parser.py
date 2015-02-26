@@ -40,7 +40,7 @@ REGEX
 low_num_pat = '(?P<low>(?P<low_num>\d+)(?P<low_suffix>[A-Z]?(?![\w]))(( )(?P<low_fractional>1/2))?)'
 hyphen_pat = '((?<= )?-(?= )?)?'
 high_num_pat = '(?P<high>(?P<high_num>\d+)(?P<high_suffix>[A-Z]?(?![\w]))(( )(?P<high_fractional>1/2))?)?'
-street_num_pat = '(?P<full>' + low_num_pat + hyphen_pat + high_num_pat + ')'
+street_num_pat = '^(?P<full>' + low_num_pat + hyphen_pat + high_num_pat + ')'
 street_num_re = re.compile(street_num_pat)
 
 # Misc
@@ -212,7 +212,7 @@ class Parser:
 		'''
 
 		# Returns a dict of primary address components
-		street_num_search = street_num_re.search(addr)		
+		street_num_search = street_num_re.search(addr)
 		street_num = None
 		street_num_comps = None
 
@@ -252,7 +252,7 @@ class Parser:
 
 			# Remove street num
 			addr = street_num_re.sub('', addr)[1:]
-		
+
 		# Tokenize
 		tokens = addr.split()
 
@@ -275,8 +275,6 @@ class Parser:
 		'''
 		UNIT
 		'''
-
-		# TODO: do we handle APTA, FL2?
 
 		unit_type = None
 		unit_num = None
@@ -381,7 +379,7 @@ class Parser:
 		suffix = SUFFIXES_STD[suffix] if suffix else None
 
 		# Unit
-		unit = None
+		# unit = None
 
 		if unit_type:
 			unit_type = UNIT_TYPES_STD[unit_type]
@@ -402,7 +400,12 @@ class Parser:
 		'''
 
 		# Concatenate comps
-		full_addr_comps = [street_num, predir, street_name, suffix, postdir, unit]
+		unit_comps = {
+			'type': unit_type,
+			'num': unit_num,
+		}
+
+		full_addr_comps = [street_num, predir, street_name, suffix, postdir, unit_type, unit_num]
 		full_addr = ' '.join([str(comp) for comp in full_addr_comps if comp])
 
 		street_full_comps = [predir, street_name, suffix, postdir]
@@ -424,6 +427,7 @@ class Parser:
 			'street_address': full_addr,
 			'address': street_num_comps,
 			'street': street_full_comps,
+			'unit': unit_comps
 			# 'street_full': street_full,
 			# 'address': street_num,
 			# 'predir': predir,
@@ -445,7 +449,7 @@ TEST
 # 	parser = Parser()
 
 # 	test = [
-# 		'237-3700 CECIL B MOORE AVE',
+# 		'237 CECIL B MOORE AVE APT 2',
 # 	]
 # 	for a_test in test:
 # 		print a_test
