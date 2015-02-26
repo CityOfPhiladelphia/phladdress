@@ -118,6 +118,15 @@ class Parser:
 	    return SequenceMatcher(None, a, b).ratio()
 
 
+	def parity(self, num):
+		try:
+			if num % 2 == 0:
+				return 'E'
+			return 'O'
+		except:
+			raise Exception('Not a number: {}').format(num)
+
+
 	'''
 	STANDARDIZE
 	'''
@@ -247,8 +256,12 @@ class Parser:
 				street_num_comps['high_num'] = int(street_num_comps['high_num'])
 				street_num_comps['high_num_full'] = high_full
 
-			# Make int
+			# Make low num an integer
 			street_num_comps['low_num'] = int(street_num_comps['low_num'])
+
+			# Get parity
+			street_num_comps['low_parity'] = self.parity(street_num_comps['low_num'])
+			street_num_comps['high_parity'] = self.parity(street_num_comps['high_num']) if street_num_comps['high_num'] else None
 
 			# Remove street num
 			addr = street_num_re.sub('', addr)[1:]
