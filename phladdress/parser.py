@@ -236,7 +236,7 @@ class Parser:
 
 			# Range
 			else:
-				addr_type = 'high'
+				addr_type = 'range'
 				low = street_num_comps['low_num']
 				high = str(street_num_comps['high_num'])
 				len_high = len(high)
