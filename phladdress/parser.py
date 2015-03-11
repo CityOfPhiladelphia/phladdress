@@ -251,6 +251,9 @@ class Parser:
 					# 	raise Exception('Invalid address range: {}'.format(street_num))
 
 					high_full = int(high_full)
+				
+				else:
+					high_full = high
 
 				# Return ints
 				street_num_comps['high_num'] = int(street_num_comps['high_num'])
@@ -462,7 +465,7 @@ TEST
 # 	parser = Parser()
 
 # 	test = [
-# 		'237 CECIL B MOORE AVE APT 2',
+# 		'751-5100 KINGSTON ST',
 # 	]
 # 	for a_test in test:
 # 		print a_test
