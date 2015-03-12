@@ -238,22 +238,20 @@ class Parser:
 			else:
 				addr_type = 'range'
 				low = street_num_comps['low_num']
-				high = str(street_num_comps['high_num'])
+				high = street_num_comps['high_num']
 				len_high = len(high)
 
-				# Handle potentially wacky high nums
+				# Expand high num to full number (100-3 MAIN ST => 103)
 				high_full = None
 
 				if len_high <= len(low):
-					high_full = low[:-len_high] + high
+					high_full = int(low[:-len_high] + high)
 					
 					# if high_full < low:
 					# 	raise Exception('Invalid address range: {}'.format(street_num))
-
-					high_full = int(high_full)
 				
 				else:
-					high_full = high
+					high_full = int(high)
 
 				# Return ints
 				street_num_comps['high_num'] = int(street_num_comps['high_num'])
@@ -465,7 +463,7 @@ TEST
 # 	parser = Parser()
 
 # 	test = [
-# 		'751-5100 KINGSTON ST',
+# 		'751-3 KINGSTON ST',
 # 	]
 # 	for a_test in test:
 # 		print a_test
