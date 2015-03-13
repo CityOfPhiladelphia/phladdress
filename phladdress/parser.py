@@ -40,7 +40,7 @@ REGEX
 low_num_pat = '(?P<low>(?P<low_num>\d+)(?P<low_suffix>[A-Z]?(?![\w]))(( )(?P<low_fractional>1/2))?)'
 hyphen_pat = '((?<= )?-(?= )?)?'
 high_num_pat = '(?P<high>(?P<high_num>\d+)(?P<high_suffix>[A-Z]?(?![\w]))(( )(?P<high_fractional>1/2))?)?'
-street_num_pat = '^(?P<full>' + low_num_pat + hyphen_pat + high_num_pat + ')'
+street_num_pat = '^(0+)?(?P<full>' + low_num_pat + hyphen_pat + high_num_pat + ')'
 street_num_re = re.compile(street_num_pat)
 
 # Misc
@@ -463,7 +463,7 @@ TEST
 # 	parser = Parser()
 
 # 	test = [
-# 		'751-3 KINGSTON ST',
+# 		'123 KINGSTON ST',
 # 	]
 # 	for a_test in test:
 # 		print a_test
