@@ -408,6 +408,9 @@ class Parser:
 		# Street name
 		street_name = self.standardize_street_name(tokens)
 
+		# Postdir
+		postdir = DIRS_STD[postdir] if postdir else None
+
 		
 		'''
 		RETURN
@@ -463,7 +466,7 @@ TEST
 # 	parser = Parser()
 
 # 	test = [
-# 		'123 KINGSTON ST',
+# 		'123 KINGSTON ST WEST',
 # 	]
 # 	for a_test in test:
 # 		print a_test
