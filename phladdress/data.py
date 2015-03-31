@@ -64,7 +64,7 @@ ABBRS_STD = {
 	'CRK': 'CREEK',
 	'CTR': 'CENTER',
 	'MT': 'MOUNT',
-	'PK': 'PARK',
+	# 'PK': 'PARK',		# This is being confused with PIKE
 }
 
 ABBRS = set(ABBRS_STD.keys())
