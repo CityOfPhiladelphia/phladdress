@@ -12,17 +12,10 @@ from pprint import pprint
 NOTES
 '''
 
-# Handle these:
-#	1 SOUTH ST
-#	1 EAST SOUTH ST
-#	101 S INDEPENDENCE MALL E
-# 	41ST ST DR
-#	1132 BIG ST REAR OFFICE
-
 # TODO
+	# Standardize #REAR to just REAR as suffix type
 	# Should street_names_common have a column for suffix? So 1234 THE PARKWAY => 1234 BENJAMIN FRANKLIN PKWY
 	# intersections and PO boxes
-	# expand high range nums
 	# take non-addressable street names out of street_names_with_suffix (i.e. WHATEVER ST RAMP)
 	# handle garbage at end
 	# how should 41ST ST DR look in street_names_with_suffix?
@@ -233,6 +226,7 @@ class Parser:
 			# Single address
 			if not street_num_comps['high']:
 				addr_type = 'single'
+				street_full_comps['high_num_full'] = None
 
 			# Range
 			else:
@@ -462,17 +456,17 @@ class Parser:
 TEST
 '''
 
-# if __name__ == '__main__':
-# 	parser = Parser()
+if __name__ == '__main__':
+	parser = Parser()
 
-# 	test = [
-# 		'123 KINGSTON ST WEST',
-# 	]
-# 	for a_test in test:
-# 		print a_test
-# 		comps = parser.parse(a_test)
-# 		print pprint(comps)
-# 		print ''
+	test = [
+		'123-9 KINGSTON PK',
+	]
+	for a_test in test:
+		print a_test
+		comps = parser.parse(a_test)
+		print pprint(comps)
+		print ''
 
 
 	# MULTIPLE
