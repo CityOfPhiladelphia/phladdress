@@ -226,7 +226,7 @@ class Parser:
 			# Single address
 			if not street_num_comps['high']:
 				addr_type = 'single'
-				street_full_comps['high_num_full'] = None
+				street_num_comps['high_num_full'] = None
 
 			# Range
 			else:
