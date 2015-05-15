@@ -70,6 +70,7 @@ ABBRS_STD = {
 ABBRS = set(ABBRS_STD.keys())
 
 SAINTS_STD = {
+	# Base name => standardized name
 	'ALBAN': 'ALBANS',
 	'ANDREW': 'ANDREW',
 	'BERNARD': 'BERNARD',
@@ -102,6 +103,11 @@ with open(os.path.join(os.path.dirname(__file__), './data/street_names_common.cs
 	STREET_NAMES_COMMON_STD = {x['COMMON']: x['STANDARD'] for x in reader}
 
 STREET_NAMES_COMMON = set(STREET_NAMES_COMMON_STD.keys())
+
+# Postdir streets
+with open(os.path.join(os.path.dirname(__file__), './data/streets_with_postdir.csv')) as f:
+	reader = csv.DictReader(f)
+	STREETS_WITH_POSTDIR = [x for x in reader]
 
 
 '''

@@ -82,9 +82,6 @@ class Parser:
 		# Digit or ordinal
 		if self.is_ordinal(test) or test.isdigit():
 			return True
-
-		# TODO: for better peformance this could return the numeral type so we don't have to check again
-
 		return False
 
 
@@ -403,9 +400,15 @@ class Parser:
 		street_name = self.standardize_street_name(tokens)
 
 		# Postdir
-		postdir = DIRS_STD[postdir] if postdir else None
+		if postdir:
+			# Make sure it's a postdir street
+			matches = [x for x in STREETS_WITH_POSTDIR if x['street_name'] == street_name and x['suffix'] == suffix]
+			if len(matches) > 0:
+				postdir = DIRS_STD[postdir]
+			else:
+				postdir = None
 
-		
+
 		'''
 		RETURN
 		'''
@@ -460,7 +463,7 @@ if __name__ == '__main__':
 	parser = Parser()
 
 	test = [
-		'123-9 KINGSTON PK',
+		'1310 ST ALBANS PL',
 	]
 	for a_test in test:
 		print a_test
