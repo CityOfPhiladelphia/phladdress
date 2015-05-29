@@ -441,14 +441,7 @@ class Parser:
 			'street_address': full_addr,
 			'address': street_num_comps,
 			'street': street_full_comps,
-			'unit': unit_comps
-			# 'street_full': street_full,
-			# 'address': street_num,
-			# 'predir': predir,
-			# 'street_name': street_name,
-			# 'suffix': suffix,
-			# 'postdir': postdir,
-			# 'unit': unit,
+			'unit': unit_comps,
 			# 'similarity': similarity,
 		}
 
@@ -459,17 +452,17 @@ class Parser:
 TEST
 '''
 
-if __name__ == '__main__':
-	parser = Parser()
+# if __name__ == '__main__':
+# 	parser = Parser()
 
-	test = [
-		'1310 ST ALBANS PL',
-	]
-	for a_test in test:
-		print a_test
-		comps = parser.parse(a_test)
-		print pprint(comps)
-		print ''
+	# test = [
+	# 	'1310 ST ALBANS PL',
+	# ]
+	# for a_test in test:
+	# 	print a_test
+	# 	comps = parser.parse(a_test)
+	# 	print pprint(comps)
+	# 	print ''
 
 
 	# MULTIPLE
@@ -487,7 +480,7 @@ if __name__ == '__main__':
 
 	# from datetime import datetime
 	# start = datetime.now()
-	# for i in range(0, 1000000):
+	# for i in range(0, 500000):
 	# 	parser.parse('00717  S CHRIS COLUMBUS BLV #407')
 	# print 'Took {}'.format(datetime.now() - start)
 
