@@ -460,17 +460,17 @@ class Parser:
 TEST
 '''
 
-if __name__ == '__main__':
-	parser = Parser()
+# if __name__ == '__main__':
+# 	parser = Parser()
 
-	test = [
-		'GREENHILL APARTMENT DR',
-	]
-	for a_test in test:
-		print a_test
-		comps = parser.parse(a_test)
-		print pprint(comps)
-		print ''
+# 	test = [
+# 		'GREENHILL APARTMENT DR',
+# 	]
+# 	for a_test in test:
+# 		print a_test
+# 		comps = parser.parse(a_test)
+# 		print pprint(comps)
+# 		print ''
 
 
 	# MULTIPLE
