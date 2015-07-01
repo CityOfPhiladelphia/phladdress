@@ -337,8 +337,16 @@ class Parser:
 			suffix = tokens[-1]
 			del tokens[-1]
 
+		# Edge case: GREENHILL APARTMENT DR. Don't capture APT DR as a unit.
+		elif unit_num in SUFFIXES:
+			suffix = unit_num
+			tokens.append(unit_type)
+			unit_num = None
+			unit_type = None
+
 		# Approach 2: check for suffix in name
 		# TODO: this is capturing the AVE of 7015 RIDGE AVE as part of the street name
+		# because there's a RIDGE AVE RAMP or something.
 
 		# Check that remaining tokens aren't a protected street name
 		# name_has_suffix_test = ' '.join(tokens)
@@ -452,17 +460,17 @@ class Parser:
 TEST
 '''
 
-# if __name__ == '__main__':
-# 	parser = Parser()
+if __name__ == '__main__':
+	parser = Parser()
 
-	# test = [
-	# 	'1310 ST ALBANS PL',
-	# ]
-	# for a_test in test:
-	# 	print a_test
-	# 	comps = parser.parse(a_test)
-	# 	print pprint(comps)
-	# 	print ''
+	test = [
+		'GREENHILL APARTMENT DR',
+	]
+	for a_test in test:
+		print a_test
+		comps = parser.parse(a_test)
+		print pprint(comps)
+		print ''
 
 
 	# MULTIPLE
