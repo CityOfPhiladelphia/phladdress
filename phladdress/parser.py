@@ -199,6 +199,9 @@ class Parser:
 		Parse an address string into standardized components. This only does line 1 for now.
 		'''
 
+		if len(input_addr) == 0:
+			raise ValueError('Input string is blank')
+
 		# Lint
 		addr = self.lint(input_addr)
 
