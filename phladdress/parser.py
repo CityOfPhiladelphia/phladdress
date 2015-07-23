@@ -199,8 +199,8 @@ class Parser:
 		Parse an address string into standardized components. This only does line 1 for now.
 		'''
 
-		if len(input_addr) == 0:
-			raise ValueError('Input string is blank')
+		if input_addr in (None, ''):
+			raise ValueError('No address')
 
 		# Lint
 		addr = self.lint(input_addr)
@@ -467,13 +467,13 @@ TEST
 # 	parser = Parser()
 
 # 	test = [
-# 		'GREENHILL APARTMENT DR',
+# 		None
 # 	]
 # 	for a_test in test:
-# 		print a_test
+# 		print(a_test)
 # 		comps = parser.parse(a_test)
-# 		print pprint(comps)
-# 		print ''
+# 		print(pprint(comps))
+# 		print()
 
 
 	# MULTIPLE
