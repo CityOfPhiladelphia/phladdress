@@ -36,7 +36,7 @@ high_num_pat = '(?P<high>(?P<high_num>\d+)(?P<high_suffix>[A-Z]?(?![\w]))(( )(?P
 street_num_pat = '^(0+)?(?P<full>' + low_num_pat + hyphen_pat + high_num_pat + ')'
 street_num_re = re.compile(street_num_pat)
 street_num_fields = ['full', 'low', 'low_num', 'low_suffix', 'low_fractional', \
-	'high', 'high_num', 'high_suffix', 'high_fractional']
+	'high', 'high_num', 'high_num_full' 'high_suffix', 'high_fractional']
 
 # Misc
 intersection_re = re.compile('(?P<street_1>.*)(AND|&|AT)(?P<street_2>)')
