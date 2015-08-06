@@ -24,7 +24,7 @@ NOTES
 
 
 '''
-REGEX
+SET UP
 '''
 
 # Street num
@@ -35,6 +35,8 @@ hyphen_pat = '((?<= )?-(?= )?)?'
 high_num_pat = '(?P<high>(?P<high_num>\d+)(?P<high_suffix>[A-Z]?(?![\w]))(( )(?P<high_fractional>1/2))?)?'
 street_num_pat = '^(0+)?(?P<full>' + low_num_pat + hyphen_pat + high_num_pat + ')'
 street_num_re = re.compile(street_num_pat)
+street_num_fields = ['full', 'low', 'low_num', 'low_suffix', 'low_fractional', \
+	'high', 'high_num', 'high_suffix', 'high_fractional']
 
 # Misc
 intersection_re = re.compile('(?P<street_1>.*)(AND|&|AT)(?P<street_2>)')
@@ -216,7 +218,7 @@ class Parser:
 		# Returns a dict of primary address components
 		street_num_search = street_num_re.search(addr)
 		street_num = None
-		street_num_comps = None
+		# street_num_comps = None
 
 		# Check if there's a street num
 		if street_num_search:
@@ -260,6 +262,10 @@ class Parser:
 
 			# Remove street num
 			addr = street_num_re.sub('', addr)[1:]
+
+		# If there's no address (i.e. PO boxes), return None for all fields
+		else:
+			street_num_comps = {field: None for field in street_num_fields}
 
 		# Tokenize
 		tokens = addr.split()
@@ -467,7 +473,8 @@ TEST
 # 	parser = Parser()
 
 # 	test = [
-# 		None
+# 		'1234 MARKET ST',
+# 		'PO BOX 1234',
 # 	]
 # 	for a_test in test:
 # 		print(a_test)
