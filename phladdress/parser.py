@@ -425,7 +425,7 @@ class Parser:
 			# Make sure it's a postdir street
 			# matches = [x for x in STREETS_WITH_POSTDIR if x['street_name'] == street_name and x['street_suffix'] == suffix]
 			# if len(matches) > 0:
-			street_base = '{} {}'.format(street_name, street_suffix)
+			street_base = '{} {}'.format(street_name, suffix)
 			if street_base in STREETS_WITH_POSTDIR:
 				postdir = DIRS_STD[postdir]
 			else:
