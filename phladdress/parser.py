@@ -414,21 +414,22 @@ class Parser:
 		# Predir
 		if predir:
 			# Make sure it's a predir street
-			matches = [x for x in STREETS_WITH_PREDIR if x['street_name'] == street_name and x['street_suffix'] == suffix]
-			if len(matches) > 0:
+			street_base = '{} {}'.format(street_name, suffix)
+			if street_base in STREETS_WITH_PREDIR:
 				predir = DIRS_STD[predir]
 			else:
-				predir = None			
+				predir = None
 
 		# Postdir
 		if postdir:
 			# Make sure it's a postdir street
-			matches = [x for x in STREETS_WITH_POSTDIR if x['street_name'] == street_name and x['street_suffix'] == suffix]
-			if len(matches) > 0:
+			# matches = [x for x in STREETS_WITH_POSTDIR if x['street_name'] == street_name and x['street_suffix'] == suffix]
+			# if len(matches) > 0:
+			street_base = '{} {}'.format(street_name, street_suffix)
+			if street_base in STREETS_WITH_POSTDIR:
 				postdir = DIRS_STD[postdir]
 			else:
 				postdir = None
-
 
 
 		'''
@@ -477,16 +478,16 @@ TEST
 # if __name__ == '__main__':
 # 	parser = Parser()
 
-# 	test = [
-# 		'1234 W MARKET ST',
-# 		'1310 N 10TH ST',
-# 		'PO BOX 1234',
-# 	]
-# 	for a_test in test:
-# 		print(a_test)
-# 		comps = parser.parse(a_test)
-# 		print(pprint(comps))
-# 		print()
+	# test = [
+	# 	'1234 W MARKET ST',
+	# 	'1310 N 10TH ST',
+	# 	'PO BOX 1234',
+	# ]
+	# for a_test in test:
+	# 	print(a_test)
+	# 	comps = parser.parse(a_test)
+	# 	print(pprint(comps))
+	# 	print()
 
 
 	# MULTIPLE
@@ -504,9 +505,9 @@ TEST
 
 	# from datetime import datetime
 	# start = datetime.now()
-	# for i in range(0, 500000):
+	# for i in range(0, 650000):
 	# 	parser.parse('00717  S CHRIS COLUMBUS BLV #407')
-	# print 'Took {}'.format(datetime.now() - start)
+	# print('Took {}'.format(datetime.now() - start))
 
 
 	# 311 FILE

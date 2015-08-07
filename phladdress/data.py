@@ -107,12 +107,12 @@ STREET_NAMES_COMMON = set(STREET_NAMES_COMMON_STD.keys())
 # Postdir streets
 with open(os.path.join(os.path.dirname(__file__), './data/streets_with_predir.csv')) as f:
 	reader = csv.DictReader(f)
-	STREETS_WITH_PREDIR = [x for x in reader]
+	STREETS_WITH_PREDIR = set(['{} {}'.format(x['street_name'], x['street_suffix']) for x in reader])
 
 # Postdir streets
 with open(os.path.join(os.path.dirname(__file__), './data/streets_with_postdir.csv')) as f:
 	reader = csv.DictReader(f)
-	STREETS_WITH_POSTDIR = [x for x in reader]
+	STREETS_WITH_POSTDIR = set(['{} {}'.format(x['street_name'], x['street_suffix']) for x in reader])
 
 
 '''
