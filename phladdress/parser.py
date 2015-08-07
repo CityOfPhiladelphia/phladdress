@@ -1,5 +1,5 @@
 import re
-from difflib import SequenceMatcher
+# from difflib import SequenceMatcher
 from phladdress.data import *
 
 # DEV
@@ -49,7 +49,7 @@ PARSER
 '''
 
 class Parser:
-	'Address parser'
+	'''Address parser'''
 
 	'''
 	UTILITY FUNCTIONS
@@ -394,15 +394,13 @@ class Parser:
 		STANDARDIZE
 		'''
 
-		# Predir
-		predir = DIRS_STD[predir] if predir else None
+		# Street name
+		street_name = self.standardize_street_name(tokens)
 
 		# Suffix
 		suffix = SUFFIXES_STD[suffix] if suffix else None
 
 		# Unit
-		# unit = None
-
 		if unit_type:
 			unit_type = UNIT_TYPES_STD[unit_type]
 
@@ -411,19 +409,26 @@ class Parser:
 				unit = ' '.join([unit_type, unit_num]) if unit_num else None
 
 			else:
-				unit = unit_type
-		
-		# Street name
-		street_name = self.standardize_street_name(tokens)
+				unit = unit_type		
+
+		# Predir
+		if predir:
+			# Make sure it's a predir street
+			matches = [x for x in STREETS_WITH_PREDIR if x['street_name'] == street_name and x['street_suffix'] == suffix]
+			if len(matches) > 0:
+				predir = DIRS_STD[predir]
+			else:
+				predir = None			
 
 		# Postdir
 		if postdir:
 			# Make sure it's a postdir street
-			matches = [x for x in STREETS_WITH_POSTDIR if x['street_name'] == street_name and x['suffix'] == suffix]
+			matches = [x for x in STREETS_WITH_POSTDIR if x['street_name'] == street_name and x['street_suffix'] == suffix]
 			if len(matches) > 0:
 				postdir = DIRS_STD[postdir]
 			else:
 				postdir = None
+
 
 
 		'''
@@ -469,18 +474,19 @@ class Parser:
 TEST
 '''
 
-if __name__ == '__main__':
-	parser = Parser()
+# if __name__ == '__main__':
+# 	parser = Parser()
 
-	test = [
-		'1234 MARKET ST',
-		'PO BOX 1234',
-	]
-	for a_test in test:
-		print(a_test)
-		comps = parser.parse(a_test)
-		print(pprint(comps))
-		print()
+# 	test = [
+# 		'1234 W MARKET ST',
+# 		'1310 N 10TH ST',
+# 		'PO BOX 1234',
+# 	]
+# 	for a_test in test:
+# 		print(a_test)
+# 		comps = parser.parse(a_test)
+# 		print(pprint(comps))
+# 		print()
 
 
 	# MULTIPLE

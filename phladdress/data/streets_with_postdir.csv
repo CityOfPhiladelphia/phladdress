@@ -1,4 +1,4 @@
-predir,street_name,suffix,postdir
+street_predir,street_name,street_suffix,street_postdir
 ,CENTENNIAL,SQ,E
 ,CENTENNIAL,SQ,N
 ,CENTENNIAL,SQ,W
