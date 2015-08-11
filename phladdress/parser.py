@@ -353,6 +353,18 @@ class Parser:
 			unit_num = None
 			unit_type = None
 
+		# Edge case: 1701 JOHN F KENNEDY BLVD COMCAST CENTER
+		# Start at the second token and find the first suffix. Everything after
+		# that is probably garbage. CENTER is not currently a suffix but is
+		# USPS-valid.
+		# We start at the second token because: 1901 AVENUE OF THE ARTS
+		if suffix is None and len(tokens) > 1:
+			for i in range(1, len(tokens) - 2):
+				token = tokens[i]
+				if token in SUFFIXES:
+					suffix = token
+					del tokens[i:]
+
 		# Approach 2: check for suffix in name
 		# TODO: this is capturing the AVE of 7015 RIDGE AVE as part of the street name
 		# because there's a RIDGE AVE RAMP or something.
@@ -479,7 +491,7 @@ TEST
 # 	parser = Parser()
 
 # 	test = [
-# 		'1234 W MARKET BL',
+# 		'1701 JOHN F KENNEDY BLVD COMCAST CENTER',
 # 	]
 # 	for a_test in test:
 # 		print(a_test)
