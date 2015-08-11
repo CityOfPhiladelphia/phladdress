@@ -478,16 +478,14 @@ TEST
 # if __name__ == '__main__':
 # 	parser = Parser()
 
-	# test = [
-	# 	'1234 W MARKET ST',
-	# 	'1310 N 10TH ST',
-	# 	'PO BOX 1234',
-	# ]
-	# for a_test in test:
-	# 	print(a_test)
-	# 	comps = parser.parse(a_test)
-	# 	print(pprint(comps))
-	# 	print()
+# 	test = [
+# 		'1234 W MARKET BL',
+# 	]
+# 	for a_test in test:
+# 		print(a_test)
+# 		comps = parser.parse(a_test)
+# 		print(pprint(comps))
+# 		print()
 
 
 	# MULTIPLE
