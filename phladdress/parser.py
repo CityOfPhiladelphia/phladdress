@@ -15,13 +15,9 @@ NOTES
 # TODO
 	# Standardize #REAR to just REAR as suffix type
 	# Should street_names_common have a column for suffix? So 1234 THE PARKWAY => 1234 BENJAMIN FRANKLIN PKWY
-	# intersections and PO boxes
 	# take non-addressable street names out of street_names_with_suffix (i.e. WHATEVER ST RAMP)
-	# handle garbage at end
 	# how should 41ST ST DR look in street_names_with_suffix?
-	# extra credit: expand suffixes in street names (e.g. 41ST ST DR => 41ST STREET DR)
 	# expand words like CTR => CENTER?
-
 
 '''
 SET UP
@@ -38,8 +34,16 @@ street_num_re = re.compile(street_num_pat)
 street_num_fields = ['full', 'low', 'low_num', 'low_suffix', 'low_fractional', \
 	'high', 'high_num', 'high_num_full', 'high_suffix', 'high_fractional']
 
+# Address type regex
+single_address_re = re.compile('^\d+\w?(-\w+)?( \d/\d)?( .+)+$')
+intersection_conjunctions = ['AND', '&', '\+', 'AT']
+# intersection_pat = '^(?P<street_1>.+)(' + '|'.join(intersection_conjunctions) + ')(?P<street_2>.+)$'
+intersection_pat = '^(?P<street_1>[A-Z0-9 ]+)( ?(' + '|'.join(intersection_conjunctions) + ') ?)(?P<street_2>[A-Z0-9 ]+)$'
+intersection_re = re.compile(intersection_pat)
+po_box_re = re.compile('^P(\.|OST)? ?O(\.|FFICE)? ?BOX (?P<num>\w+)$')
+street_name_re = re.compile('^\w+( \w+)+$')  # TODO: this is not mutually exclusive with po_box_re
+
 # Misc
-intersection_re = re.compile('(?P<street_1>.*)(AND|&|AT)(?P<street_2>)')
 # zip_re = re.compile('(?P<full>(?P<zip_5>\d{5})(-(?P<zip_4>\d{4}))?)$')
 saints_re = re.compile('^(ST|SAINT) ({})'.format('|'.join(SAINTS)))
 
@@ -49,8 +53,6 @@ PARSER
 '''
 
 class Parser:
-	'''Address parser'''
-
 	'''
 	UTILITY FUNCTIONS
 	'''
@@ -59,33 +61,26 @@ class Parser:
 		'''
 		Remove punctuation and extra whitespace
 		'''
-
 		addr = ' '.join(addr.split())
 		addr = addr.replace('.', '')
 		addr = addr.replace(',', '')
 		addr = addr.upper()
-
 		return addr
-
 
 	def is_ordinal(self, test):
 		# Short ordinal
 		if test[:-2].isdigit() and test[-2:] in ['TH', 'ST', 'ND', 'RD']:
 			return True
-
 		# Long ordinal
 		if test in LONG_ORDINALS_STD:
 			return True
-
 		return False
-
 
 	def is_numeric(self, test):
 		# Digit or ordinal
 		if self.is_ordinal(test) or test.isdigit():
 			return True
 		return False
-
 
 	def ordinalize(self, num):
 		if not num.isdigit():
@@ -105,10 +100,8 @@ class Parser:
 
 		return num + suffix
 
-
 	def calculate_similarity(self, a, b):
 	    return SequenceMatcher(None, a, b).ratio()
-
 
 	def parity(self, num):
 		try:
@@ -118,7 +111,6 @@ class Parser:
 		except:
 			raise Exception('Not a number: {}').format(num)
 
-
 	'''
 	STANDARDIZE
 	'''
@@ -126,29 +118,23 @@ class Parser:
 	def standardize_ordinal_street_name(self, name):
 		# Remove leading zeros
 		name = name.lstrip('0')
-
 		# Check LONG_ORDINAL dict
 		if name in LONG_ORDINALS_STD:
 			return LONG_ORDINALS_STD[name]
-
 		return name
-
 
 	def standardize_street_name(self, tokens):
 		'''
 		Standardize a street name
 		Note: this takes tokens and returns a string
 		'''
-
 		first_token = tokens[0]
 		
 		# Check for ordinals
 		if self.is_ordinal(first_token):
 			tokens[0] = self.standardize_ordinal_street_name(first_token)
-
 		elif first_token.isdigit():
 			tokens[0] = self.ordinalize(first_token)
-
 		# Check for abbreviations
 		for i, token in enumerate(tokens):
 			if token in ABBRS:
@@ -156,14 +142,12 @@ class Parser:
 
 		# Checks after this use the concatenated string
 		street_name = ' '.join(tokens)
-		
 		# Check for common name
 		if street_name in STREET_NAMES_COMMON:
 			street_name = STREET_NAMES_COMMON_STD[street_name]
 
 		# Check for saint
 		saint_comps = saints_re.match(street_name)
-
 		if saint_comps:
 			saint = saint_comps.group(2)
 			saint = SAINTS_STD[saint]
@@ -171,12 +155,10 @@ class Parser:
 
 		return street_name
 
-
 	def standardize_unit_num(self, unit_num):
 		'''
 		Handles ordinal unit nums
 		'''
-
 		# Strip leading zeros
 		unit_num = unit_num.lstrip('0')
 
@@ -185,32 +167,207 @@ class Parser:
 			if unit_num in LONG_ORDINALS_STD:
 				std = LONG_ORDINALS_STD[unit_num]
 				return std[:-2]
-
 			# 1ST => 1
 			return unit_num[:-2]
-		
 		return unit_num
 
-
 	'''
-	PARSE
+	PARSING
 	'''
 
 	def parse(self, input_addr):
 		'''
 		Parse an address string into standardized components. This only does line 1 for now.
 		'''
-
+		# Validate input
 		if input_addr in (None, ''):
 			raise ValueError('No address')
-
-		# Lint
 		addr = self.lint(input_addr)
 
 		# Address type: single address, range, P.O. box, or intersection
 		addr_type = None
+		
+		# Check type
+		if single_address_re.search(addr):
+			comps = self.parse_single_address(addr)
+			return {
+				'input_address': input_addr,
+				'standardized_address': comps['street_address'],
+				'components': comps,
+				'type': 'address'
+			}
+		
+		intersection_search = intersection_re.search(addr)
+		if intersection_search:
+			# return self.parse_intersection(intersection_search)
+			street_1_comps = self.parse_street(intersection_search.group('street_1'))
+			street_2_comps = self.parse_street(intersection_search.group('street_2'))
+			return {
+				'input_address': input_addr,
+				'standardized_address': input_addr,
+				'components': {
+					'street_1': street_1_comps,
+					'street_2': street_2_comps
+				},
+				'type': 'intersection',
+			}
+		
+		po_box_search = po_box_re.search(addr)
+		if po_box_search:
+			std = self.parse_po_box(addr)
+			return {
+				'input_address': input_addr,
+				'standardized_address': std,
+				'type': 'po box'
+			}
+
+		if street_name_re.search(addr):
+			comps = self.parse_street(addr)
+			return {
+				'input_address': input_addr,
+				'standardized_address': comps['full'],
+				'components': comps,
+				'type': 'street'
+			}
+
+		raise ValueError('Address format not recognized: {}'.format(addr))
+
+	def parse_street(self, input_street, unit_type=None, unit_num=None):
+		'''
+		PREDIR
+		'''
+
+		tokens = input_street.split(' ')
+
+		predir = None
+
+		# Save the predir candidate so we can check later if it's a legit part of the street name
+		predir_candidate = tokens[0]
+
+		# Check if first token is a directional
+		if predir_candidate in DIRS:
+			predir = predir_candidate
+			del tokens[0]
+
+		'''
+		POSTDIR
+		'''
+
+		postdir = None
+
+		# Check if first token is a directional
+		if tokens[-1] in DIRS:
+			postdir = tokens[-1]
+			del tokens[-1]
+
+		'''
+		SUFFIX
+		'''
+
+		suffix = None
+
+		# Approach 1: just parse it
+		if tokens[-1] in SUFFIXES:
+			suffix = tokens[-1]
+			del tokens[-1]
+
+		# Edge case: GREENHILL APARTMENT DR. Don't capture APT DR as a unit.
+		elif unit_num and unit_num in SUFFIXES:
+			suffix = unit_num
+			tokens.append(unit_type)
+			unit_num = None
+			unit_type = None
+
+		# Edge case: 1701 JOHN F KENNEDY BLVD COMCAST CENTER
+		# Start at the second token and find the first suffix. Everything after
+		# that is probably garbage. CENTER is not currently a suffix but is
+		# USPS-valid.
+		# We start at the second token because: 1901 AVENUE OF THE ARTS
+		if suffix is None and len(tokens) > 1:
+			for i in range(1, len(tokens) - 2):
+				token = tokens[i]
+				if token in SUFFIXES and ' '.join(tokens[:i + 1]) not in STREET_NAMES_WITH_SUFFIX:
+					suffix = token
+					del tokens[i:]
+					break
+
+		# Approach 2: check for suffix in name
+		# TODO: this is capturing the AVE of 7015 RIDGE AVE as part of the street name
+		# because there's a RIDGE AVE RAMP or something.
+
+		# Check that remaining tokens aren't a protected street name
+		# name_has_suffix_test = ' '.join(tokens)
+		# name_has_suffix = name_has_suffix_test in STREET_NAMES_WITH_SUFFIX
+
+		# if not name_has_suffix and tokens[-1] in SUFFIXES:
+		# 	suffix = tokens[-1]
+		# 	del tokens[-1]
+
+		'''
+		STREET NAME
+		'''
+
+		# Predir precautions
+		if predir:
+			# If there are no tokens left, give up the predir
+			if len(tokens) == 0:
+				tokens = [predir]
+				predir = None
+
+			# Make sure the predir + remaining tokens aren't a protected name
+			else:
+				name_has_predir_tokens = [predir_candidate] + tokens
+				name_has_predir_test = ' '.join(name_has_predir_tokens)
+				name_has_predir = name_has_predir_test in STREET_NAMES_WITH_DIR
+
+				if name_has_predir:
+					tokens = name_has_predir_tokens
+					predir = None
+
+		# TODO: should check suffix and postdir too, right?
 
 
+		'''
+		STANDARDIZE
+		'''
+
+		street_name = self.standardize_street_name(tokens)
+
+		# Predir
+		if predir:
+			# Make sure it's a predir street
+			street_base = ' '.join([street_name, suffix])
+			if street_base in STREETS_WITH_PREDIR:
+				predir = DIRS_STD[predir]
+			else:
+				predir = None
+
+		# Postdir
+		if postdir:
+			# Make sure it's a postdir street
+			# matches = [x for x in STREETS_WITH_POSTDIR if x['street_name'] == street_name and x['street_suffix'] == suffix]
+			# if len(matches) > 0:
+			street_base = '{} {}'.format(street_name, suffix)
+			if street_base in STREETS_WITH_POSTDIR:
+				postdir = DIRS_STD[postdir]
+			else:
+				postdir = None
+
+		# Suffix
+		suffix = SUFFIXES_STD[suffix] if suffix else None
+
+		street_full_comps = [predir, street_name, suffix, postdir]
+		street_full = ' '.join([str(comp) for comp in street_full_comps if comp])
+		street_full_comps = {
+			'predir': predir,
+			'name': street_name,
+			'suffix': suffix,
+			'postdir': postdir,
+			'full': street_full
+		}
+		return street_full_comps
+
+	def parse_single_address(self, addr):
 		'''
 		STREET NUM
 		'''
@@ -229,7 +386,6 @@ class Parser:
 			if not street_num_comps['high']:
 				addr_type = 'single'
 				street_num_comps['high_num_full'] = None
-
 			# Range
 			else:
 				addr_type = 'range'
@@ -245,7 +401,6 @@ class Parser:
 					
 					# if high_full < low:
 					# 	raise Exception('Invalid address range: {}'.format(street_num))
-				
 				else:
 					high_full = int(high)
 
@@ -269,22 +424,6 @@ class Parser:
 
 		# Tokenize
 		tokens = addr.split()
-
-
-		'''
-		PREDIR
-		'''
-
-		predir = None
-
-		# Save the predir candidate so we can check later if it's a legit part of the street name
-		predir_candidate = tokens[0]
-
-		# Check if first token is a directional
-		if predir_candidate in DIRS:
-			predir = predir_candidate
-			del tokens[0]
-
 
 		'''
 		UNIT
@@ -321,96 +460,6 @@ class Parser:
 				if second_to_last_token and self.is_numeric(second_to_last_token):
 					unit_num = second_to_last_token
 					del tokens[-1]
-					
-
-		'''
-		POSTDIR
-		'''
-
-		postdir = None
-
-		# Check if first token is a directional
-		if tokens[-1] in DIRS:
-			postdir = tokens[-1]
-			del tokens[-1]
-
-		
-		'''
-		SUFFIX
-		'''
-
-		suffix = None
-
-		# Approach 1: just parse it
-		if tokens[-1] in SUFFIXES:
-			suffix = tokens[-1]
-			del tokens[-1]
-
-		# Edge case: GREENHILL APARTMENT DR. Don't capture APT DR as a unit.
-		elif unit_num in SUFFIXES:
-			suffix = unit_num
-			tokens.append(unit_type)
-			unit_num = None
-			unit_type = None
-
-		# Edge case: 1701 JOHN F KENNEDY BLVD COMCAST CENTER
-		# Start at the second token and find the first suffix. Everything after
-		# that is probably garbage. CENTER is not currently a suffix but is
-		# USPS-valid.
-		# We start at the second token because: 1901 AVENUE OF THE ARTS
-		if suffix is None and len(tokens) > 1:
-			for i in range(1, len(tokens) - 2):
-				token = tokens[i]
-				if token in SUFFIXES:
-					suffix = token
-					del tokens[i:]
-
-		# Approach 2: check for suffix in name
-		# TODO: this is capturing the AVE of 7015 RIDGE AVE as part of the street name
-		# because there's a RIDGE AVE RAMP or something.
-
-		# Check that remaining tokens aren't a protected street name
-		# name_has_suffix_test = ' '.join(tokens)
-		# name_has_suffix = name_has_suffix_test in STREET_NAMES_WITH_SUFFIX
-
-		# if not name_has_suffix and tokens[-1] in SUFFIXES:
-		# 	suffix = tokens[-1]
-		# 	del tokens[-1]
-
-
-		'''
-		STREET NAME
-		'''
-
-		# Predir precautions
-		if predir:
-			# If there are no tokens left, give up the predir
-			if len(tokens) == 0:
-				tokens = [predir]
-				predir = None
-
-			# Make sure the predir + remaining tokens aren't a protected name
-			else:
-				name_has_predir_tokens = [predir_candidate] + tokens
-				name_has_predir_test = ' '.join(name_has_predir_tokens)
-				name_has_predir = name_has_predir_test in STREET_NAMES_WITH_DIR
-
-				if name_has_predir:
-					tokens = name_has_predir_tokens
-					predir = None
-
-		# TODO: should check suffix and postdir too, right?
-
-
-		'''
-		STANDARDIZE
-		'''
-
-		# Street name
-		street_name = self.standardize_street_name(tokens)
-
-		# Suffix
-		suffix = SUFFIXES_STD[suffix] if suffix else None
 
 		# Unit
 		if unit_type:
@@ -421,32 +470,22 @@ class Parser:
 				unit = ' '.join([unit_type, unit_num]) if unit_num else None
 
 			else:
-				unit = unit_type		
+				unit = unit_type
 
-		# Predir
-		if predir:
-			# Make sure it's a predir street
-			street_base = '{} {}'.format(street_name, suffix)
-			if street_base in STREETS_WITH_PREDIR:
-				predir = DIRS_STD[predir]
-			else:
-				predir = None
+		'''
+		STREET
+		'''
 
-		# Postdir
-		if postdir:
-			# Make sure it's a postdir street
-			# matches = [x for x in STREETS_WITH_POSTDIR if x['street_name'] == street_name and x['street_suffix'] == suffix]
-			# if len(matches) > 0:
-			street_base = '{} {}'.format(street_name, suffix)
-			if street_base in STREETS_WITH_POSTDIR:
-				postdir = DIRS_STD[postdir]
-			else:
-				postdir = None
-
+		street_full_comps = self.parse_street(' '.join(tokens))
 
 		'''
 		RETURN
 		'''
+
+		predir = street_full_comps['predir']
+		street_name = street_full_comps['name']
+		suffix = street_full_comps['suffix']
+		postdir = street_full_comps['postdir']
 
 		# Concatenate comps
 		unit_comps = {
@@ -457,31 +496,21 @@ class Parser:
 		full_addr_comps = [street_num, predir, street_name, suffix, postdir, unit_type, unit_num]
 		full_addr = ' '.join([str(comp) for comp in full_addr_comps if comp])
 
-		street_full_comps = [predir, street_name, suffix, postdir]
-		street_full = ' '.join([str(comp) for comp in street_full_comps if comp])
-		street_full_comps = {
-			'predir': predir,
-			'name': street_name,
-			'suffix': suffix,
-			'postdir': postdir,
-			'full': street_full
-		}
-
 		# Get similarity
 		# similarity = self.calculate_similarity(input_addr, full_addr)
 		# similarity = round(similarity, 2)
 
-		comps = {
-			'type': addr_type,
+		return {
 			'street_address': full_addr,
 			'address': street_num_comps,
 			'street': street_full_comps,
 			'unit': unit_comps,
-			# 'similarity': similarity,
 		}
 
-		return comps
-
+	def parse_po_box(self, input_addr):
+		search = po_box_re.search(input_addr)
+		num = search.group('num')
+		return 'PO BOX {}'.format(num)
 
 '''
 TEST
@@ -491,14 +520,16 @@ TEST
 # 	parser = Parser()
 
 # 	test = [
-# 		'1701 JOHN F KENNEDY BLVD COMCAST CENTER',
+# 		'1 COBBS CREEK PKWY',
+# 		'COBBS CREEK PKWY & LOCUST',
+# 		'POST OFFICE BOX 213',
+# 		'NORTH 23RD ST'
 # 	]
 # 	for a_test in test:
 # 		print(a_test)
 # 		comps = parser.parse(a_test)
 # 		print(pprint(comps))
 # 		print()
-
 
 	# MULTIPLE
 
