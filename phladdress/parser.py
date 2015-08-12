@@ -222,7 +222,7 @@ class Parser:
 			}
 
 		if street_name_re.search(addr):
-			comps = self.parse_street(addr)
+			comps = self.parse_street(addr)[0]
 			return {
 				'input_address': input_addr,
 				'standardized_address': comps['full'],
@@ -233,11 +233,26 @@ class Parser:
 		raise ValueError('Address format not recognized: {}'.format(addr))
 
 	def parse_street(self, input_street, unit_type=None, unit_num=None):
+		tokens = input_street.split(' ')
+		
+		# If there's a unit num, make sure it isn't actually the suffix
+		# (e.g. 101 GREENHILL APARTMENT DR => 101 GREENHILL APT DR)
+		input_unit_type = unit_type
+		input_unit_num = unit_num
+
+		if unit_num and unit_num in SUFFIXES:
+			suffix = unit_num
+			# tokens.append(unit_type)
+			tokens += [unit_type, unit_num]
+			unit_num = None
+			unit_type = None
+			reset_unit = True
+		else:
+			reset_unit = False
+
 		'''
 		PREDIR
 		'''
-
-		tokens = input_street.split(' ')
 
 		predir = None
 
@@ -272,11 +287,11 @@ class Parser:
 			del tokens[-1]
 
 		# Edge case: GREENHILL APARTMENT DR. Don't capture APT DR as a unit.
-		elif unit_num and unit_num in SUFFIXES:
-			suffix = unit_num
-			tokens.append(unit_type)
-			unit_num = None
-			unit_type = None
+		# elif unit_num and unit_num in SUFFIXES:
+		# 	suffix = unit_num
+		# 	tokens.append(unit_type)
+		# 	unit_num = None
+		# 	unit_type = None
 
 		# Edge case: 1701 JOHN F KENNEDY BLVD COMCAST CENTER
 		# Start at the second token and find the first suffix. Everything after
@@ -333,6 +348,9 @@ class Parser:
 
 		street_name = self.standardize_street_name(tokens)
 
+		# Suffix
+		suffix = SUFFIXES_STD[suffix] if suffix else None
+
 		# Predir
 		if predir:
 			# Make sure it's a predir street
@@ -353,19 +371,18 @@ class Parser:
 			else:
 				postdir = None
 
-		# Suffix
-		suffix = SUFFIXES_STD[suffix] if suffix else None
 
 		street_full_comps = [predir, street_name, suffix, postdir]
 		street_full = ' '.join([str(comp) for comp in street_full_comps if comp])
-		street_full_comps = {
+		comps = {
 			'predir': predir,
 			'name': street_name,
 			'suffix': suffix,
 			'postdir': postdir,
 			'full': street_full
 		}
-		return street_full_comps
+
+		return comps, reset_unit
 
 	def parse_single_address(self, addr):
 		'''
@@ -461,31 +478,41 @@ class Parser:
 					unit_num = second_to_last_token
 					del tokens[-1]
 
+		'''
+		STREET
+		'''
+
+		street_comps, reset_unit = self.parse_street(' '.join(tokens), \
+			unit_type=unit_type, unit_num=unit_num)
+		if reset_unit:
+			print(23478234)
+			unit_num = None
+			unit_type = None
+
+		'''
+		STANDARDIZE
+		'''
+
 		# Unit
 		if unit_type:
 			unit_type = UNIT_TYPES_STD[unit_type]
 
 			if unit_num:
-				unit_num = self.standardize_unit_num(unit_num)
+				# unit_num = self.standardize_unit_num(unit_num)
 				unit = ' '.join([unit_type, unit_num]) if unit_num else None
 
 			else:
 				unit = unit_type
 
-		'''
-		STREET
-		'''
-
-		street_full_comps = self.parse_street(' '.join(tokens))
 
 		'''
 		RETURN
 		'''
 
-		predir = street_full_comps['predir']
-		street_name = street_full_comps['name']
-		suffix = street_full_comps['suffix']
-		postdir = street_full_comps['postdir']
+		predir = street_comps['predir']
+		street_name = street_comps['name']
+		suffix = street_comps['suffix']
+		postdir = street_comps['postdir']
 
 		# Concatenate comps
 		unit_comps = {
@@ -503,7 +530,7 @@ class Parser:
 		return {
 			'street_address': full_addr,
 			'address': street_num_comps,
-			'street': street_full_comps,
+			'street': street_comps,
 			'unit': unit_comps,
 		}
 
@@ -516,20 +543,21 @@ class Parser:
 TEST
 '''
 
-# if __name__ == '__main__':
-# 	parser = Parser()
+if __name__ == '__main__':
+	parser = Parser()
 
-# 	test = [
-# 		'1 COBBS CREEK PKWY',
-# 		'COBBS CREEK PKWY & LOCUST',
-# 		'POST OFFICE BOX 213',
-# 		'NORTH 23RD ST'
-# 	]
-# 	for a_test in test:
-# 		print(a_test)
-# 		comps = parser.parse(a_test)
-# 		print(pprint(comps))
-# 		print()
+	# test = [
+	# 	# '792 S FRONT ST',
+	# 	'1 COBBS CREEK PKWY',
+	# 	'COBBS CREEK PKWY & LOCUST',
+	# 	'POST OFFICE BOX 213',
+	# 	'NORTH 23RD ST'
+	# ]
+	# for a_test in test:
+	# 	print(a_test)
+	# 	comps = parser.parse(a_test)
+	# 	print(pprint(comps))
+	# 	print()
 
 	# MULTIPLE
 
