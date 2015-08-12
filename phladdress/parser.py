@@ -485,7 +485,6 @@ class Parser:
 		street_comps, reset_unit = self.parse_street(' '.join(tokens), \
 			unit_type=unit_type, unit_num=unit_num)
 		if reset_unit:
-			print(23478234)
 			unit_num = None
 			unit_type = None
 
