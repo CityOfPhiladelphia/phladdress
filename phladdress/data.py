@@ -64,7 +64,7 @@ ABBRS_STD = {
 	'CRK': 'CREEK',
 	'CTR': 'CENTER',
 	'MT': 'MOUNT',
-	'PK': 'PARK',			# Caveat: DOR uses this as an abbr for PIKE
+	# 'PK': 'PARK',			# This is widely used for PIKE
 }
 
 ABBRS = set(ABBRS_STD.keys())

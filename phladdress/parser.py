@@ -7,7 +7,6 @@ import sys
 from pprint import pprint
 # from phladdress.test.test_addrs import TEST_ADDRS
 
-
 '''
 NOTES
 '''
@@ -17,16 +16,15 @@ NOTES
 	# Should street_names_common have a column for suffix? So 1234 THE PARKWAY => 1234 BENJAMIN FRANKLIN PKWY
 	# take non-addressable street names out of street_names_with_suffix (i.e. WHATEVER ST RAMP)
 	# how should 41ST ST DR look in street_names_with_suffix?
-	# expand words like CTR => CENTER?
+	# Restructure common name routine so we can convert AYRDALECRESCENT ST => AYRDALE CRESCENT
 
 '''
 SET UP
 '''
 
 # Street num
-# street_num_re = re.compile('(?P<full>(?P<low>[1-9](\w+)?( 1/2)?)(-(?P<high>\w+( 1/2)?))?)')
-# street_num_re = re.compile('(?P<leading_zeros>0+)?(?P<full>(?P<low>\w+( (?P<low_fractional>1/2))?)(-(?P<high>\w+( (?P<high_fractional>1/2))?))?)')
-low_num_pat = '(?P<low>(?P<low_num>\d+)(?P<low_suffix>[A-Z]?(?![\w]))(( )(?P<low_fractional>1/2))?)'
+# low_num_pat = '(?P<low>(?P<low_num>\d+)(?P<low_suffix>[A-Z]?(?![\w]))(( )(?P<low_fractional>1/2))?)'
+low_num_pat = '(?P<low>(?P<low_num>\d+)-?(?P<low_suffix>[A-Z]?(?![\w]))(( )(?P<low_fractional>1/2))?)'
 hyphen_pat = '((?<= )?-(?= )?)?'
 high_num_pat = '(?P<high>(?P<high_num>\d+)(?P<high_suffix>[A-Z]?(?![\w]))(( )(?P<high_fractional>1/2))?)?'
 street_num_pat = '^(0+)?(?P<full>' + low_num_pat + hyphen_pat + high_num_pat + ')'
@@ -36,9 +34,7 @@ street_num_fields = ['full', 'low', 'low_num', 'low_suffix', 'low_fractional', \
 
 # Address type regex
 single_address_re = re.compile('^\d+\w?(-\w+)?( \d/\d)?( .+)+$')
-intersection_conjunctions = ['AND', '&', '\+', 'AT']
-# intersection_pat = '^(?P<street_1>.+)(' + '|'.join(intersection_conjunctions) + ')(?P<street_2>.+)$'
-intersection_pat = '^(?P<street_1>[A-Z0-9 ]+)( ?(' + '|'.join(intersection_conjunctions) + ') ?)(?P<street_2>[A-Z0-9 ]+)$'
+intersection_pat = '^(?P<street_1>[A-Z0-9 ]+)( AND | ?& ?| ?\+ ?| AT )(?P<street_2>[A-Z0-9 ]+)$'
 intersection_re = re.compile(intersection_pat)
 po_box_re = re.compile('^P(\.|OST)? ?O(\.|FFICE)? ?BOX (?P<num>\w+)$')
 street_name_re = re.compile('^\w+( \w+)+$')  # TODO: this is not mutually exclusive with po_box_re
@@ -270,6 +266,19 @@ class Parser:
 
 		postdir = None
 
+		# If there are no tokens left
+		if len(tokens) == 0:
+			# But there's a unit type, we probably swallowed it by mistake and
+			# it's actually the street name
+			if unit_type:
+				tokens = [unit_type]
+				unit_type = None
+				reset_unit = True
+
+				if unit_num:
+					tokens.append(unit_num)
+					unit_num = None
+
 		# Check if first token is a directional
 		if tokens[-1] in DIRS:
 			postdir = tokens[-1]
@@ -280,6 +289,10 @@ class Parser:
 		'''
 
 		suffix = None
+
+		if len(tokens) == 0:
+			# TODO: not sure if this will happen, but handle it gracefullish
+			raise
 
 		# Approach 1: just parse it
 		if tokens[-1] in SUFFIXES:
@@ -341,7 +354,6 @@ class Parser:
 
 		# TODO: should check suffix and postdir too, right?
 
-
 		'''
 		STANDARDIZE
 		'''
@@ -349,16 +361,18 @@ class Parser:
 		street_name = self.standardize_street_name(tokens)
 
 		# Suffix
-		suffix = SUFFIXES_STD[suffix] if suffix else None
+		if suffix:
+			suffix = SUFFIXES_STD[suffix]
 
 		# Predir
 		if predir:
-			# Make sure it's a predir street
-			street_base = ' '.join([street_name, suffix])
-			if street_base in STREETS_WITH_PREDIR:
-				predir = DIRS_STD[predir]
-			else:
-				predir = None
+			if suffix:
+				# Make sure it's a predir street
+				street_base = ' '.join([street_name, suffix])
+				if street_base in STREETS_WITH_PREDIR:
+					predir = DIRS_STD[predir]
+				else:
+					predir = None
 
 		# Postdir
 		if postdir:
@@ -392,12 +406,10 @@ class Parser:
 		# Returns a dict of primary address components
 		street_num_search = street_num_re.search(addr)
 		street_num = None
-		# street_num_comps = None
 
 		# Check if there's a street num
 		if street_num_search:
 			street_num_comps = street_num_search.groupdict()
-			street_num = street_num_comps['full']
 
 			# Single address
 			if not street_num_comps['high']:
@@ -432,12 +444,20 @@ class Parser:
 			street_num_comps['low_parity'] = self.parity(street_num_comps['low_num'])
 			street_num_comps['high_parity'] = self.parity(street_num_comps['high_num']) if street_num_comps['high_num'] else None
 
+			# Edge case: 281-A HERMITAGE ST in PWD parcels
+			if '-' in street_num_comps['low']:
+				street_num_comps['low'] = street_num_comps['low'].replace('-', '')
+				street_num_comps['full'] = street_num_comps['full'].replace('-', '')
+			
+			street_num = street_num_comps['full']
+
 			# Remove street num
 			addr = street_num_re.sub('', addr)[1:]
 
 		# If there's no address (i.e. PO boxes), return None for all fields
 		else:
-			street_num_comps = {field: None for field in street_num_fields}
+			# street_num_comps = {field: None for field in street_num_fields}
+			raise  # We shouldn't need this handler anymore
 
 		# Tokenize
 		tokens = addr.split()
@@ -503,7 +523,6 @@ class Parser:
 			else:
 				unit = unit_type
 
-
 		'''
 		RETURN
 		'''
@@ -546,11 +565,17 @@ if __name__ == '__main__':
 	parser = Parser()
 
 	# test = [
+	# 	'BRANDYWINE ST',
+	# 	# '281-A HERMITAGE ST',
+	# 	# '281-83 HERMITAGE ST',
+	# 	# '281-A HERMITAGE ST',
+	# 	# '1415-17 S ORIANNA',
+	# 	# '2800 S 20TH ST',
 	# 	# '792 S FRONT ST',
-	# 	'1 COBBS CREEK PKWY',
-	# 	'COBBS CREEK PKWY & LOCUST',
-	# 	'POST OFFICE BOX 213',
-	# 	'NORTH 23RD ST'
+	# 	# '1 COBBS CREEK PKWY',
+	# 	# 'COBBS CREEK PKWY & LOCUST',
+	# 	# 'POST OFFICE BOX 213',
+	# 	# 'NORTH 23RD ST'
 	# ]
 	# for a_test in test:
 	# 	print(a_test)
