@@ -358,6 +358,7 @@ class Parser:
 		STANDARDIZE
 		'''
 
+		# Street name
 		street_name = self.standardize_street_name(tokens)
 
 		# Suffix
@@ -365,6 +366,25 @@ class Parser:
 			suffix = SUFFIXES_STD[suffix]
 
 		# Predir
+		if predir:
+			predir = SUFFIXES_STD[predir]
+
+		# Postdir
+		if postdir:
+			postdir = SUFFIXES_STD[postdir]
+
+		# Apply street corrections. These fix common disagreements between
+		# address sources, like JAMESTOWN AVE => JAMESTOWN ST.
+		street_full = ' '.join([str(x) for x in [predir, street_name, suffix, postdir] if x])
+		if street_full in CORRECTIONS:
+			correction = CORRECTIONS[street_full]
+			predir = correction['TO_PREDIR']
+			street_name = correction['TO_NAME']
+			suffix = correction['TO_SUFFIX']
+			postdir = correction['TO_POSTDIR']
+			street_full = ' '.join([str(x) for x in [predir, street_name, suffix, postdir] if x])
+
+		# Remove unnecessary predir
 		if predir:
 			if suffix:
 				# Make sure it's a predir street
@@ -374,7 +394,7 @@ class Parser:
 				else:
 					predir = None
 
-		# Postdir
+		# Remove unnecessary postdir
 		if postdir:
 			# Make sure it's a postdir street
 			# matches = [x for x in STREETS_WITH_POSTDIR if x['street_name'] == street_name and x['street_suffix'] == suffix]
@@ -386,8 +406,7 @@ class Parser:
 				postdir = None
 
 
-		street_full_comps = [predir, street_name, suffix, postdir]
-		street_full = ' '.join([str(comp) for comp in street_full_comps if comp])
+		street_full = ' '.join([str(x) for x in [predir, street_name, suffix, postdir] if x])
 		comps = {
 			'predir': predir,
 			'name': street_name,
@@ -564,24 +583,22 @@ TEST
 if __name__ == '__main__':
 	parser = Parser()
 
-	# test = [
-	# 	'BRANDYWINE ST',
-	# 	# '281-A HERMITAGE ST',
-	# 	# '281-83 HERMITAGE ST',
-	# 	# '281-A HERMITAGE ST',
-	# 	# '1415-17 S ORIANNA',
-	# 	# '2800 S 20TH ST',
-	# 	# '792 S FRONT ST',
-	# 	# '1 COBBS CREEK PKWY',
-	# 	# 'COBBS CREEK PKWY & LOCUST',
-	# 	# 'POST OFFICE BOX 213',
-	# 	# 'NORTH 23RD ST'
-	# ]
-	# for a_test in test:
-	# 	print(a_test)
-	# 	comps = parser.parse(a_test)
-	# 	print(pprint(comps))
-	# 	print()
+	test = [
+		'2600 MUHFELD ST',
+		# '281-A HERMITAGE ST',
+		# '1415-17 S ORIANNA',
+		# '2800 S 20TH ST',
+		# '792 S FRONT ST',
+		# '1 COBBS CREEK PKWY',
+		# 'COBBS CREEK PKWY & LOCUST',
+		# 'POST OFFICE BOX 213',
+		# 'NORTH 23RD ST'
+	]
+	for a_test in test:
+		print(a_test)
+		comps = parser.parse(a_test)
+		print(pprint(comps))
+		print()
 
 	# MULTIPLE
 

@@ -16,7 +16,6 @@ DIRS_STD = {
 
 DIRS = set(DIRS_STD.keys())
 
-
 '''
 ORDINALS
 '''
@@ -43,7 +42,6 @@ LONG_ORDINALS_STD = {
 	'NINETEENTH': '19TH',
 	'TWENTIETH': '20TH',
 }
-
 
 '''
 STREET NAMES
@@ -114,7 +112,6 @@ with open(os.path.join(os.path.dirname(__file__), './data/streets_with_postdir.c
 	reader = csv.DictReader(f)
 	STREETS_WITH_POSTDIR = set(['{} {}'.format(x['street_name'], x['street_suffix']) for x in reader])
 
-
 '''
 SUFFIXES
 '''
@@ -129,7 +126,6 @@ with open(os.path.join(os.path.dirname(__file__), './data/suffixes.csv')) as f:
 	# Set to look up suffixes
 	SUFFIXES = set(SUFFIXES_STD.keys())
 
-
 '''
 UNIT TYPES
 '''
@@ -142,3 +138,22 @@ with open(os.path.join(os.path.dirname(__file__), './data/unit_types.csv')) as f
 
 	# Set to look up unit types
 	UNIT_TYPES = set(UNIT_TYPES_STD.keys())
+
+'''
+CORRECTIONS
+
+These resolve common disagreements between address sources. For example, OPA 
+uses JAMESTOWN ST whereas Streets calls it JAMESTOWN AVE. We standardize to 
+one or the other.
+'''
+
+with open(os.path.join(os.path.dirname(__file__), './data/street_corrections.csv')) as f:
+	reader = csv.DictReader(f)
+	street_full_attrs = ['FROM_PREDIR', 'FROM_NAME', 'FROM_SUFFIX', 'FROM_POSTDIR']
+	CORRECTIONS = {}
+
+	for row in reader:
+		street_full = ' '.join([row[x] for x in street_full_attrs if row[x]])
+		if street_full in CORRECTIONS:
+			raise ValueError('Duplicate street correction entry')
+		CORRECTIONS[street_full] = {x: row[x] for x in ['TO_PREDIR', 'TO_NAME', 'TO_SUFFIX', 'TO_POSTDIR']}
