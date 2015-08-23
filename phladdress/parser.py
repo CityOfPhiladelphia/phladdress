@@ -37,7 +37,7 @@ single_address_re = re.compile('^\d+\w?(-\w+)?( \d/\d)?( .+)+$')
 intersection_pat = '^(?P<street_1>[A-Z0-9 ]+)( AND | ?& ?| ?\+ ?| AT )(?P<street_2>[A-Z0-9 ]+)$'
 intersection_re = re.compile(intersection_pat)
 po_box_re = re.compile('^P(\.|OST)? ?O(\.|FFICE)? ?BOX (?P<num>\w+)$')
-street_name_re = re.compile('^\w+( \w+)+$')  # TODO: this is not mutually exclusive with po_box_re
+street_name_re = re.compile('^\w+( \w+)*$')  # TODO: this is not mutually exclusive with po_box_re
 
 # Misc
 # zip_re = re.compile('(?P<full>(?P<zip_5>\d{5})(-(?P<zip_4>\d{4}))?)$')
@@ -233,10 +233,14 @@ class Parser:
 		
 		# If there's a unit num, make sure it isn't actually the suffix
 		# (e.g. 101 GREENHILL APARTMENT DR => 101 GREENHILL APT DR)
+		# Counter edge case: 1010 RACE ST # PK
+		# This is tricky because there's no programmatic way to discern between
+		# the two. As a compromise, I'm checking if the unit type is #. There's
+		# a really good chance that's an actual unit. But it's not perfect.
 		input_unit_type = unit_type
 		input_unit_num = unit_num
 
-		if unit_num and unit_num in SUFFIXES:
+		if unit_num and unit_num in SUFFIXES and unit_type != '#':
 			suffix = unit_num
 			# tokens.append(unit_type)
 			tokens += [unit_type, unit_num]
@@ -367,16 +371,17 @@ class Parser:
 
 		# Predir
 		if predir:
-			predir = SUFFIXES_STD[predir]
+			predir = DIRS_STD[predir]
 
 		# Postdir
 		if postdir:
-			postdir = SUFFIXES_STD[postdir]
+			postdir = DIRS_STD[postdir]
 
 		# Apply street corrections. These fix common disagreements between
 		# address sources, like JAMESTOWN AVE => JAMESTOWN ST.
 		street_full = ' '.join([str(x) for x in [predir, street_name, suffix, postdir] if x])
 		if street_full in CORRECTIONS:
+			incorrect_street_full = street_full
 			correction = CORRECTIONS[street_full]
 			predir = correction['TO_PREDIR']
 			street_name = correction['TO_NAME']
@@ -584,10 +589,7 @@ if __name__ == '__main__':
 	parser = Parser()
 
 	test = [
-		'2600 MUHFELD ST',
-		# '281-A HERMITAGE ST',
-		# '1415-17 S ORIANNA',
-		# '2800 S 20TH ST',
+		'1180 E UPSAL ST'
 		# '792 S FRONT ST',
 		# '1 COBBS CREEK PKWY',
 		# 'COBBS CREEK PKWY & LOCUST',
