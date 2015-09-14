@@ -16,7 +16,6 @@ NOTES
 	# Should street_names_common have a column for suffix? So 1234 THE PARKWAY => 1234 BENJAMIN FRANKLIN PKWY
 	# take non-addressable street names out of street_names_with_suffix (i.e. WHATEVER ST RAMP)
 	# how should 41ST ST DR look in street_names_with_suffix?
-	# Restructure common name routine so we can convert AYRDALECRESCENT ST => AYRDALE CRESCENT
 
 '''
 SET UP
@@ -451,15 +450,21 @@ class Parser:
 
 				if len_high <= len(low):
 					high_full = int(low[:-len_high] + high)
-					
-					# if high_full < low:
-					# 	raise Exception('Invalid address range: {}'.format(street_num))
+
+					# If high num is same as low num (e.g. 826-26 N 3RD ST),
+					# remove and re-parse.
+					if high_full == int(low):
+						street_num_full = street_num_comps['full']
+						street_num_no_high = street_num_full[:street_num_full.find('-')]
+						street_num_search = street_num_re.search(street_num_no_high)
+						street_num_comps = street_num_search.groupdict()					
 				else:
 					high_full = int(high)
 
 				# Return ints
-				street_num_comps['high_num'] = int(street_num_comps['high_num'])
-				street_num_comps['high_num_full'] = high_full
+				if street_num_comps['high_num']:
+					street_num_comps['high_num'] = int(street_num_comps['high_num'])
+					street_num_comps['high_num_full'] = high_full
 
 			# Make low num an integer
 			street_num_comps['low_num'] = int(street_num_comps['low_num'])
@@ -589,7 +594,8 @@ if __name__ == '__main__':
 	parser = Parser()
 
 	test = [
-		'1180 E UPSAL ST'
+		'1180 E UPSAL ST',
+		'826-26 N 3RD ST',
 		# '792 S FRONT ST',
 		# '1 COBBS CREEK PKWY',
 		# 'COBBS CREEK PKWY & LOCUST',
