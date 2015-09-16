@@ -464,7 +464,7 @@ class Parser:
 				# Return ints
 				if street_num_comps['high_num']:
 					street_num_comps['high_num'] = int(street_num_comps['high_num'])
-					street_num_comps['high_num_full'] = high_full
+				street_num_comps['high_num_full'] = high_full
 
 			# Make low num an integer
 			street_num_comps['low_num'] = int(street_num_comps['low_num'])
