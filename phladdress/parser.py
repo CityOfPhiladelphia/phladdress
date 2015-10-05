@@ -522,10 +522,17 @@ class Parser:
 				unit_type = last_token
 				del tokens[-1]
 
+				if second_to_last_token[0] == ('#'):
+					second_to_last_token = second_to_last_token[1:]
+
 				# Check if preceding token is numeral
 				if second_to_last_token and self.is_numeric(second_to_last_token):
 					unit_num = second_to_last_token
 					del tokens[-1]
+
+		# Make sure there wasn't a superfluous # in unit
+		if tokens[-1] == '#':
+			del tokens[-1]
 
 		'''
 		STREET
@@ -546,7 +553,7 @@ class Parser:
 			unit_type = UNIT_TYPES_STD[unit_type]
 
 			if unit_num:
-				# unit_num = self.standardize_unit_num(unit_num)
+				unit_num = self.standardize_unit_num(unit_num)
 				unit = ' '.join([unit_type, unit_num]) if unit_num else None
 
 			else:
@@ -594,8 +601,8 @@ if __name__ == '__main__':
 	parser = Parser()
 
 	test = [
-		'1180 E UPSAL ST',
-		'826-26 N 3RD ST',
+		# '4616 N 11TH ST #2ND FL',
+		# '4616 N 11TH ST # 2ND FL',
 		# '792 S FRONT ST',
 		# '1 COBBS CREEK PKWY',
 		# 'COBBS CREEK PKWY & LOCUST',
