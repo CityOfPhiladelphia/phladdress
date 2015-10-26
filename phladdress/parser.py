@@ -5,11 +5,7 @@ from phladdress.data import *
 # DEV
 import sys
 from pprint import pprint
-# from phladdress.test.test_addrs import TEST_ADDRS
-
-'''
-NOTES
-'''
+import logging
 
 # TODO
 	# Standardize #REAR to just REAR as suffix type
@@ -42,7 +38,6 @@ street_name_re = re.compile('^\w+( \w+)*$')  # TODO: this is not mutually exclus
 # zip_re = re.compile('(?P<full>(?P<zip_5>\d{5})(-(?P<zip_4>\d{4}))?)$')
 saints_re = re.compile('^(ST|SAINT) ({})'.format('|'.join(SAINTS)))
 
-
 '''
 PARSER
 '''
@@ -54,8 +49,9 @@ class Parser:
 
 	def lint(self, addr):
 		'''
-		Remove punctuation and extra whitespace
+		Remove punctuation and extra whitespace. Insert whitespace where needed.
 		'''
+		addr = addr.replace('#', '# ')
 		addr = ' '.join(addr.split())
 		addr = addr.replace('.', '')
 		addr = addr.replace(',', '')
@@ -63,23 +59,29 @@ class Parser:
 		return addr
 
 	def is_ordinal(self, test):
+		''' Returns a tuple of True/False and the ordinal type '''
 		# Short ordinal
 		if test[:-2].isdigit() and test[-2:] in ['TH', 'ST', 'ND', 'RD']:
-			return True
+			return True, 'short_ord'		
 		# Long ordinal
-		if test in LONG_ORDINALS_STD:
-			return True
-		return False
+		elif test in LONG_ORDINALS_STD:
+			return True, 'long_ord'
+		return False, None
 
 	def is_numeric(self, test):
-		# Digit or ordinal
-		if self.is_ordinal(test) or test.isdigit():
-			return True
-		return False
+		''' Returns a tuple of True/False and the numeral type '''
+		# Ordinal
+		ord_result, ord_type = self.is_ordinal(test)
+		if ord_result is True:
+			return ord_result, ord_type
+		# Digit
+		elif test.isdigit():
+			return True, 'digit'
+		return False, None 
 
 	def ordinalize(self, num):
 		if not num.isdigit():
-			raise Exception('Cannot ordinalize {}'.format(num))
+			raise ValueError('Not a number: {}'.format(num))
 
 		last_digit = num[-1]
 		suffix = None
@@ -105,6 +107,13 @@ class Parser:
 			return 'O'
 		except:
 			raise Exception('Not a number: {}').format(num)
+
+	def reverse_enumerate(self, a_list):
+		"""
+		Returns a generator to traverse a list, with indexes, in reverse order
+		"""
+		for index in reversed(range(len(a_list))):
+			yield index, a_list[index]
 
 	'''
 	STANDARDIZE
@@ -154,17 +163,37 @@ class Parser:
 		'''
 		Handles ordinal unit nums
 		'''
-		# Strip leading zeros
-		unit_num = unit_num.lstrip('0')
+		unit_tokens = unit_num.split(' ')
+		std_tokens = []
+		
+		for unit_token in unit_tokens:
+			std_token = unit_token.lstrip('0')  # may not need this
+			is_ord, ord_type = self.is_ordinal(std_token)
+			if is_ord:
+				if ord_type == 'long_ord':
+					std_token = LONG_ORDINALS_STD[unit_token]
+				else:
+					std_token = std_token[:-2]
+			std_tokens.append(std_token)
 
-		if self.is_ordinal(unit_num):
-			# FIRST => 1
-			if unit_num in LONG_ORDINALS_STD:
-				std = LONG_ORDINALS_STD[unit_num]
-				return std[:-2]
-			# 1ST => 1
-			return unit_num[:-2]
-		return unit_num
+		std_unit_num = ' '.join(std_tokens)
+
+		return std_unit_num
+	
+
+		# OLD METHOD
+
+		# Strip leading zeros
+		# unit_num = unit_num.lstrip('0')
+
+		# if self.is_ordinal(unit_num):
+		# 	# FIRST => 1
+		# 	if unit_num in LONG_ORDINALS_STD:
+		# 		std = LONG_ORDINALS_STD[unit_num]
+		# 		return std[:-2]
+		# 	# 1ST => 1
+		# 	return unit_num[:-2]
+		# return unit_num
 
 	'''
 	PARSING
@@ -228,38 +257,30 @@ class Parser:
 		raise ValueError('Address format not recognized: {}'.format(addr))
 
 	def parse_street(self, input_street, unit_type=None, unit_num=None):
+		'''
+		This returns a tuple of comps (dict) and a Boolean flag for whether
+		the main parsing routine should null out the unit num and type.
+		'''
+		logging.debug('\n** PARSE STREET **')
+		logging.debug('input_street: {}'.format(input_street))
+		logging.debug('unit_type: {}, unit_num: {}'.format(unit_type, unit_num))
+
 		tokens = input_street.split(' ')
+		assert len(tokens) > 0
+		reset_unit = False
 		
-		# If there's a unit num, make sure it isn't actually the suffix
-		# (e.g. 101 GREENHILL APARTMENT DR => 101 GREENHILL APT DR)
-		# Counter edge case: 1010 RACE ST # PK
-		# This is tricky because there's no programmatic way to discern between
-		# the two. As a compromise, I'm checking if the unit type is #. There's
-		# a really good chance that's an actual unit. But it's not perfect.
-		input_unit_type = unit_type
-		input_unit_num = unit_num
-
-		if unit_num and unit_num in SUFFIXES and unit_type != '#':
-			suffix = unit_num
-			# tokens.append(unit_type)
-			tokens += [unit_type, unit_num]
-			unit_num = None
-			unit_type = None
-			reset_unit = True
-		else:
-			reset_unit = False
-
 		'''
 		PREDIR
 		'''
 
 		predir = None
 
-		# Save the predir candidate so we can check later if it's a legit part of the street name
+		# Save the first token so we can check later if the predir is actually 
+		# part of the street name
 		predir_candidate = tokens[0]
 
-		# Check if first token is a directional
 		if predir_candidate in DIRS:
+			logging.debug('predir: {}'.format(predir_candidate))
 			predir = predir_candidate
 			del tokens[0]
 
@@ -269,20 +290,22 @@ class Parser:
 
 		postdir = None
 
-		# If there are no tokens left
-		if len(tokens) == 0:
-			# But there's a unit type, we probably swallowed it by mistake and
-			# it's actually the street name
-			if unit_type:
-				tokens = [unit_type]
-				unit_type = None
-				reset_unit = True
+		# If there's a unit but no more tokens
+		# Edge case: 124 S PIER
+		if len(tokens) == 0 and unit_type is not None:
+			# Give up unit type
+			logging.debug('no more tokens, give back unit: {}'.format( \
+				' '.join([unit_num, unit_type])))
+			tokens = [unit_type]
+			unit_type = None
+			reset_unit = True
 
-				if unit_num:
-					tokens.append(unit_num)
-					unit_num = None
+			if unit_num:
+				tokens.append(unit_num)
+				unit_num = None
 
-		# Check if first token is a directional
+
+		# Check if last token is a directional
 		if tokens[-1] in DIRS:
 			postdir = tokens[-1]
 			del tokens[-1]
@@ -293,52 +316,43 @@ class Parser:
 
 		suffix = None
 
-		if len(tokens) == 0:
-			# TODO: not sure if this will happen, but handle it gracefullish
-			raise
-
-		# Approach 1: just parse it
-		if tokens[-1] in SUFFIXES:
-			suffix = tokens[-1]
-			del tokens[-1]
-
-		# Edge case: GREENHILL APARTMENT DR. Don't capture APT DR as a unit.
-		# elif unit_num and unit_num in SUFFIXES:
-		# 	suffix = unit_num
-		# 	tokens.append(unit_type)
-		# 	unit_num = None
-		# 	unit_type = None
-
-		# Edge case: 1701 JOHN F KENNEDY BLVD COMCAST CENTER
-		# Start at the second token and find the first suffix. Everything after
-		# that is probably garbage. CENTER is not currently a suffix but is
-		# USPS-valid.
-		# We start at the second token because: 1901 AVENUE OF THE ARTS
-		if suffix is None and len(tokens) > 1:
-			for i in range(1, len(tokens) - 2):
-				token = tokens[i]
-				if token in SUFFIXES and ' '.join(tokens[:i + 1]) not in STREET_NAMES_WITH_SUFFIX:
-					suffix = token
-					del tokens[i:]
-					break
-
-		# Approach 2: check for suffix in name
-		# TODO: this is capturing the AVE of 7015 RIDGE AVE as part of the street name
-		# because there's a RIDGE AVE RAMP or something.
-
-		# Check that remaining tokens aren't a protected street name
-		# name_has_suffix_test = ' '.join(tokens)
-		# name_has_suffix = name_has_suffix_test in STREET_NAMES_WITH_SUFFIX
-
-		# if not name_has_suffix and tokens[-1] in SUFFIXES:
+		# Try last token
+		# Problem: if there's junk on the end that has a suffix, this captures
+		# it. Like 1 MARKET ST ENTER ON ALLEY
+		# if tokens[-1] in SUFFIXES:
 		# 	suffix = tokens[-1]
 		# 	del tokens[-1]
+
+		new_tokens = list(tokens)
+		len_tokens = len(tokens)
+		start_i = 1 if len_tokens > 1 else 0  # In case 
+		for token_i in range(start_i, len_tokens):
+			token = tokens[token_i]
+			if token in SUFFIXES:
+				# If it's part of a street name that contains a suffix and 
+				# there's still one more token to parse as the suffix, skip.
+				# Case: COBBS CREEK PKWY, CREEK is a suffix
+				test = ' '.join(tokens[:token_i + 1])
+				if test in STREET_NAMES_WITH_SUFFIX and len_tokens > \
+					token_i + 1:
+					logging.debug('{} looks like a suffix but is part of {}' \
+						.format(token, test))
+					continue
+				else:
+					# If there's any junk after the suffix, delete it.
+					# Also clear out unit.
+					# Case: 1 PINE ST ENTER AT REAR
+					suffix = token
+					logging.debug('suffix: {}'.format(suffix))
+					del new_tokens[token_i:]
+					break
+		tokens = new_tokens
 
 		'''
 		STREET NAME
 		'''
 
-		# Predir precautions
+		# Case: 1 E ST, E got parsed as predir, give up predir
 		if predir:
 			# If there are no tokens left, give up the predir
 			if len(tokens) == 0:
@@ -355,7 +369,7 @@ class Parser:
 					tokens = name_has_predir_tokens
 					predir = None
 
-		# TODO: should check suffix and postdir too, right?
+		# TODO: should check suffix and postdir too?
 
 		'''
 		STANDARDIZE
@@ -396,6 +410,7 @@ class Parser:
 				if street_base in STREETS_WITH_PREDIR:
 					predir = DIRS_STD[predir]
 				else:
+					logging.debug('removing unnecessary predir: {}'.format(predir))
 					predir = None
 
 		# Remove unnecessary postdir
@@ -407,6 +422,7 @@ class Parser:
 			if street_base in STREETS_WITH_POSTDIR:
 				postdir = DIRS_STD[postdir]
 			else:
+				logging.debug('removing unnecessary postdir: {}'.format(postdir))
 				postdir = None
 
 
@@ -418,7 +434,6 @@ class Parser:
 			'postdir': postdir,
 			'full': street_full
 		}
-
 		return comps, reset_unit
 
 	def parse_single_address(self, addr):
@@ -495,44 +510,88 @@ class Parser:
 		UNIT
 		'''
 
-		unit_type = None
+		# NEW APPROACH
+
+		logging.debug('** PARSE UNIT **')
+		logging.debug('tokens: {}'.format(tokens))
+
 		unit_num = None
+		unit_type = None
 
 		len_tokens = len(tokens)
-		last_token = tokens[-1] if len_tokens >= 2 else None
+		new_tokens = list(tokens)
 
-		if last_token:
-			# Only take the second-to-last token if there at least 3 tokens total (test case: 1 FRONT ST)
-			second_to_last_token = tokens[-2] if len(tokens) >= 3 else None
+		# Start at 1 so we don't swallow up street name tokens
+		# (We only want to take a unit if there's something left for the street)
+		for token_i in range(1, len_tokens):
+			token = tokens[token_i]
+			if token in UNIT_TYPES:
+				if token == '#':
+					next_token_i = token_i + 1
+					next_token = tokens[next_token_i]    # TODO: check len of list
 
-			# Case: #18
-			if last_token[0] == '#':
-				unit_type = '#'
-				unit_num = last_token[1:]
-				del tokens[-1]
+					next_next_token_i = next_token_i + 1
+					next_next_token = tokens[next_next_token_i] if len_tokens > next_next_token_i else None
 
-			# Case 1: FL 15
-			elif second_to_last_token and second_to_last_token in UNIT_TYPES:
-				unit_type = second_to_last_token
-				unit_num = last_token
-				del tokens[-2:]
+					# Case: # APT 1
+					if next_token in UNIT_TYPES:
+						logging.debug('unit pattern: # UNIT (1)')
+						unit_type = next_token
+						unit_num = ' '.join(tokens[next_token_i + 1:])
+						del new_tokens[token_i:]
+					# Case: # 1ST FL, # 1 FL, # 1ST FL REAR
+					elif self.is_numeric(next_token)[0] and \
+						next_next_token is not None and \
+						next_next_token in UNIT_TYPES:
+						logging.debug('unit pattern: # 1ST FL')
+						unit_type = next_next_token
+						del new_tokens[next_next_token_i]
+						unit_num = ' '.join(new_tokens[next_token_i:])
 
-			# Case 2: REAR or 15TH FLOOR or FIRST FLOOR
-			elif last_token in UNIT_TYPES:
-				unit_type = last_token
-				del tokens[-1]
+					# Case: # 2, # 2 A
+					else:
+						logging.debug('unit pattern: # 1')
+						unit_type = '#'
+						unit_num = ' '.join(tokens[next_token_i:])
+						del new_tokens[token_i:]
 
-				if second_to_last_token[0] == ('#'):
-					second_to_last_token = second_to_last_token[1:]
+				# It's a unit type other than #
+				else:
+					# If it has a suffix after, keep going
+					# Edge cases: 1 FRONT ST, 1 APARTMENT DR
+					next_token_i = token_i + 1
+					if len_tokens > next_token_i:
+						next_token = tokens[next_token_i]
+						if next_token in SUFFIXES:
+							logging.debug("skipping {} because {} is a suffix".format(token, next_token))
+							continue
 
-				# Check if preceding token is numeral
-				if second_to_last_token and self.is_numeric(second_to_last_token):
-					unit_num = second_to_last_token
-					del tokens[-1]
+					# If we're at least on the second token (so token_i doesn't end up -1)
+					if token_i > 0:
+						# Check the previous token to see if it's numeric
+						prev_token_i = token_i - 1
+						prev_token = tokens[prev_token_i]
 
-		# Make sure there wasn't a superfluous # in unit
-		if tokens[-1] == '#':
-			del tokens[-1]
+						# Case: 2ND FLOOR or 2ND FLOOR REAR
+						if self.is_numeric(prev_token)[0]:
+							logging.debug('unit pattern: 2ND FLOOR')
+							unit_type = token
+							remaining_tokens = [prev_token] + tokens[token_i + 1:]
+							unit_num = ' '.join(remaining_tokens)
+							del new_tokens[prev_token_i:]
+
+					# Case: APT 1
+					if unit_num is None:
+						logging.debug('unit pattern: UNIT (1)')
+						unit_type = token
+						remaining_tokens = tokens[token_i + 1:]
+						unit_num = ' '.join(remaining_tokens)
+						del new_tokens[token_i:]
+
+				break
+
+		logging.debug('unit_type: {}, unit_num: {}'.format(unit_type, unit_num))
+		tokens = new_tokens
 
 		'''
 		STREET
@@ -593,99 +652,18 @@ class Parser:
 		num = search.group('num')
 		return 'PO BOX {}'.format(num)
 
-'''
-TEST
-'''
 
 if __name__ == '__main__':
-	parser = Parser()
+	# LOGGING_LEVEL = logging.DEBUG
+	# logging.basicConfig(level=LOGGING_LEVEL, format='%(message)s')
 
-	test = [
-		# '4616 N 11TH ST #2ND FL',
-		# '4616 N 11TH ST # 2ND FL',
-		# '792 S FRONT ST',
-		# '1 COBBS CREEK PKWY',
-		# 'COBBS CREEK PKWY & LOCUST',
-		# 'POST OFFICE BOX 213',
-		# 'NORTH 23RD ST'
-	]
-	for a_test in test:
-		print(a_test)
-		comps = parser.parse(a_test)
-		print(pprint(comps))
-		print()
+	from phladdress.tests import parser_tests
+	parser_tests.run_tests()
 
-	# MULTIPLE
-
-	# for a_test in TEST_ADDRS:
-	# 	print a_test
-	# 	comps = parser.parse(a_test)
-	# 	print ' '.join([str(comps[x]) for x in FIELDS if comps[x]])
-	# 	ordered = ', '.join([str(x) + ': ' + str(comps[x]) for x in FIELDS if comps[x]])
-	# 	print ordered
-	# 	print
-
-
-	# TIME TRIAL
-
-	# from datetime import datetime
-	# start = datetime.now()
-	# for i in range(0, 650000):
-	# 	parser.parse('00717  S CHRIS COLUMBUS BLV #407')
-	# print('Took {}'.format(datetime.now() - start))
-
-
-	# 311 FILE
-
-	# path = "/Users/rmartin/Development/phladdress/meta/311addronly.csv"
-	# start = 2000
-	# num = 10
-	# i = 0
-	# with open(path) as f:
-	# 	end = start + num
-	# 	import csv
-	# 	for row in csv.reader(f):
-	# 		row = row[0]
-	# 		if i < start:
-	# 			i += 1
-	# 			continue
-	# 		if end < i:
-	# 			break
-	# 		print row
-	# 		comps = parser.parse(row)
-	# 		print comps['full_address']
-	# 		print comps
-	# 		print
-
-	# 		i += 1
-
-
-	# TIME 311
-
-	# path = "/Users/rmartin/Development/phladdress/meta/311addronly.csv"
-	# from datetime import datetime
-	# import csv
-	# start = datetime.now()
-
-	# errors = 0
-	# count = 0
-
-	# with open(path) as f:
-	# 	reader = csv.reader(f)
-	# 	reader.next()
-
-	# 	for row in csv.reader(f):
-	# 		try:
-	# 			row = row[0]
-	# 			results = parser.parse(row)
-	# 		except:
-	# 			errors += 1
-	# 			# import traceback
-	# 			# print traceback.format_exc()
-	# 			# raise
-	# 		finally:
-	# 			count += 1
-
-	# print 'Took {}'.format(datetime.now() - start)
-	# print errors, 'errors'
-	# print "processed {} rows".format(count)
+	###############################################
+	# TO CREATE UNIT TESTS
+	###############################################
+	# parser = Parser()
+	# parsed = parser.parse('2250 N 16TH ST # 02ND FRONT')
+	# import json
+	# print(json.dumps(parsed, sort_keys=True, indent='\t').replace('"', '\'').replace('null', 'None'))
