@@ -261,9 +261,9 @@ class Parser:
 		This returns a tuple of comps (dict) and a Boolean flag for whether
 		the main parsing routine should null out the unit num and type.
 		'''
-		logging.debug('\n** PARSE STREET **')
-		logging.debug('input_street: {}'.format(input_street))
-		logging.debug('unit_type: {}, unit_num: {}'.format(unit_type, unit_num))
+		# logging.debug('\n** PARSE STREET **')
+		# logging.debug('input_street: {}'.format(input_street))
+		# logging.debug('unit_type: {}, unit_num: {}'.format(unit_type, unit_num))
 
 		tokens = input_street.split(' ')
 		assert len(tokens) > 0
@@ -280,7 +280,7 @@ class Parser:
 		predir_candidate = tokens[0]
 
 		if predir_candidate in DIRS:
-			logging.debug('predir: {}'.format(predir_candidate))
+			# logging.debug('predir: {}'.format(predir_candidate))
 			predir = predir_candidate
 			del tokens[0]
 
@@ -294,8 +294,8 @@ class Parser:
 		# Edge case: 124 S PIER
 		if len(tokens) == 0 and unit_type is not None:
 			# Give up unit type
-			logging.debug('no more tokens, give back unit: {}'.format( \
-				' '.join([unit_num, unit_type])))
+			# logging.debug('no more tokens, give back unit: {}'.format( \
+			# 	' '.join([unit_num, unit_type])))
 			tokens = [unit_type]
 			unit_type = None
 			reset_unit = True
@@ -335,15 +335,15 @@ class Parser:
 				test = ' '.join(tokens[:token_i + 1])
 				if test in STREET_NAMES_WITH_SUFFIX and len_tokens > \
 					token_i + 1:
-					logging.debug('{} looks like a suffix but is part of {}' \
-						.format(token, test))
+					# logging.debug('{} looks like a suffix but is part of {}' \
+					# 	.format(token, test))
 					continue
 				else:
 					# If there's any junk after the suffix, delete it.
 					# Also clear out unit.
 					# Case: 1 PINE ST ENTER AT REAR
 					suffix = token
-					logging.debug('suffix: {}'.format(suffix))
+					# logging.debug('suffix: {}'.format(suffix))
 					del new_tokens[token_i:]
 					break
 		tokens = new_tokens
@@ -410,7 +410,7 @@ class Parser:
 				if street_base in STREETS_WITH_PREDIR:
 					predir = DIRS_STD[predir]
 				else:
-					logging.debug('removing unnecessary predir: {}'.format(predir))
+					# logging.debug('removing unnecessary predir: {}'.format(predir))
 					predir = None
 
 		# Remove unnecessary postdir
@@ -422,7 +422,7 @@ class Parser:
 			if street_base in STREETS_WITH_POSTDIR:
 				postdir = DIRS_STD[postdir]
 			else:
-				logging.debug('removing unnecessary postdir: {}'.format(postdir))
+				# logging.debug('removing unnecessary postdir: {}'.format(postdir))
 				postdir = None
 
 
@@ -512,8 +512,8 @@ class Parser:
 
 		# NEW APPROACH
 
-		logging.debug('** PARSE UNIT **')
-		logging.debug('tokens: {}'.format(tokens))
+		# logging.debug('** PARSE UNIT **')
+		# logging.debug('tokens: {}'.format(tokens))
 
 		unit_num = None
 		unit_type = None
@@ -528,14 +528,20 @@ class Parser:
 			if token in UNIT_TYPES:
 				if token == '#':
 					next_token_i = token_i + 1
-					next_token = tokens[next_token_i]    # TODO: check len of list
+
+					# Case: 1 PINE ST # (pound is junk, no more tokens left)
+					if next_token_i <= len_tokens:
+						del new_tokens[token_i]
+						break
+
+					next_token = tokens[next_token_i]
 
 					next_next_token_i = next_token_i + 1
 					next_next_token = tokens[next_next_token_i] if len_tokens > next_next_token_i else None
 
 					# Case: # APT 1
 					if next_token in UNIT_TYPES:
-						logging.debug('unit pattern: # UNIT (1)')
+						# logging.debug('unit pattern: # UNIT (1)')
 						unit_type = next_token
 						unit_num = ' '.join(tokens[next_token_i + 1:])
 						del new_tokens[token_i:]
@@ -543,14 +549,14 @@ class Parser:
 					elif self.is_numeric(next_token)[0] and \
 						next_next_token is not None and \
 						next_next_token in UNIT_TYPES:
-						logging.debug('unit pattern: # 1ST FL')
+						# logging.debug('unit pattern: # 1ST FL')
 						unit_type = next_next_token
 						del new_tokens[next_next_token_i]
 						unit_num = ' '.join(new_tokens[next_token_i:])
 
 					# Case: # 2, # 2 A
 					else:
-						logging.debug('unit pattern: # 1')
+						# logging.debug('unit pattern: # 1')
 						unit_type = '#'
 						unit_num = ' '.join(tokens[next_token_i:])
 						del new_tokens[token_i:]
@@ -563,7 +569,7 @@ class Parser:
 					if len_tokens > next_token_i:
 						next_token = tokens[next_token_i]
 						if next_token in SUFFIXES:
-							logging.debug("skipping {} because {} is a suffix".format(token, next_token))
+							# logging.debug("skipping {} because {} is a suffix".format(token, next_token))
 							continue
 
 					# If we're at least on the second token (so token_i doesn't end up -1)
@@ -574,7 +580,7 @@ class Parser:
 
 						# Case: 2ND FLOOR or 2ND FLOOR REAR
 						if self.is_numeric(prev_token)[0]:
-							logging.debug('unit pattern: 2ND FLOOR')
+							# logging.debug('unit pattern: 2ND FLOOR')
 							unit_type = token
 							remaining_tokens = [prev_token] + tokens[token_i + 1:]
 							unit_num = ' '.join(remaining_tokens)
@@ -582,7 +588,7 @@ class Parser:
 
 					# Case: APT 1
 					if unit_num is None:
-						logging.debug('unit pattern: UNIT (1)')
+						# logging.debug('unit pattern: UNIT (1)')
 						unit_type = token
 						remaining_tokens = tokens[token_i + 1:]
 						unit_num = ' '.join(remaining_tokens)
@@ -590,7 +596,7 @@ class Parser:
 
 				break
 
-		logging.debug('unit_type: {}, unit_num: {}'.format(unit_type, unit_num))
+		# logging.debug('unit_type: {}, unit_num: {}'.format(unit_type, unit_num))
 		tokens = new_tokens
 
 		'''
@@ -657,13 +663,13 @@ if __name__ == '__main__':
 	# LOGGING_LEVEL = logging.DEBUG
 	# logging.basicConfig(level=LOGGING_LEVEL, format='%(message)s')
 
-	from phladdress.tests import parser_tests
-	parser_tests.run_tests()
+	# from phladdress.tests import parser_tests
+	# parser_tests.run_tests()
 
 	###############################################
 	# TO CREATE UNIT TESTS
 	###############################################
-	# parser = Parser()
-	# parsed = parser.parse('2250 N 16TH ST # 02ND FRONT')
-	# import json
-	# print(json.dumps(parsed, sort_keys=True, indent='\t').replace('"', '\'').replace('null', 'None'))
+	parser = Parser()
+	parsed = parser.parse('2250 N 16TH ST #')
+	import json
+	print(json.dumps(parsed, sort_keys=True, indent='\t').replace('"', '\'').replace('null', 'None'))
