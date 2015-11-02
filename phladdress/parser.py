@@ -510,8 +510,6 @@ class Parser:
 		UNIT
 		'''
 
-		# NEW APPROACH
-
 		# logging.debug('** PARSE UNIT **')
 		# logging.debug('tokens: {}'.format(tokens))
 
@@ -530,7 +528,7 @@ class Parser:
 					next_token_i = token_i + 1
 
 					# Case: 1 PINE ST # (pound is junk, no more tokens left)
-					if next_token_i <= len_tokens:
+					if next_token_i == len_tokens:
 						del new_tokens[token_i]
 						break
 
@@ -663,13 +661,13 @@ if __name__ == '__main__':
 	# LOGGING_LEVEL = logging.DEBUG
 	# logging.basicConfig(level=LOGGING_LEVEL, format='%(message)s')
 
-	# from phladdress.tests import parser_tests
-	# parser_tests.run_tests()
+	from phladdress.tests import parser_tests
+	parser_tests.run_tests()
 
 	###############################################
 	# TO CREATE UNIT TESTS
 	###############################################
-	parser = Parser()
-	parsed = parser.parse('2250 N 16TH ST #')
-	import json
-	print(json.dumps(parsed, sort_keys=True, indent='\t').replace('"', '\'').replace('null', 'None'))
+	# parser = Parser()
+	# parsed = parser.parse('834 CHESTNUT ST # PH 108')
+	# import json
+	# print(json.dumps(parsed, sort_keys=True, indent='\t').replace('"', '\'').replace('null', 'None'))

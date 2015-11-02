@@ -818,7 +818,41 @@ TEST_ADDRESSES = [
 		}
 	},
 
-	
 
-
+	{
+		'input': '1136A SOUTH ST #A',
+		'expected_results': {
+			'components': {
+				'address': {
+					'full': '1136A',
+					'high': None,
+					'high_fractional': None,
+					'high_num': None,
+					'high_num_full': None,
+					'high_parity': None,
+					'high_suffix': None,
+					'low': '1136A',
+					'low_fractional': None,
+					'low_num': 1136,
+					'low_parity': 'E',
+					'low_suffix': 'A'
+				},
+				'street': {
+					'full': 'SOUTH ST',
+					'name': 'SOUTH',
+					'postdir': None,
+					'predir': None,
+					'suffix': 'ST'
+				},
+				'street_address': '1136A SOUTH ST # A',
+				'unit': {
+					'num': 'A',
+					'type': '#'
+				}
+			},
+			'input_address': '1136A SOUTH ST #A',
+			'standardized_address': '1136A SOUTH ST # A',
+			'type': 'address'
+		}
+	},
 ]
