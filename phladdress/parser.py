@@ -668,6 +668,6 @@ if __name__ == '__main__':
 	# TO CREATE UNIT TESTS
 	###############################################
 	# parser = Parser()
-	# parsed = parser.parse('834 CHESTNUT ST # PH 108')
+	# parsed = parser.parse('')
 	# import json
 	# print(json.dumps(parsed, sort_keys=True, indent='\t').replace('"', '\'').replace('null', 'None'))
