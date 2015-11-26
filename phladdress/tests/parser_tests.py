@@ -32,6 +32,11 @@ class DictDiffer(object):
     def unchanged(self):
         return set(o for o in self.intersect if self.past_dict[o] == self.current_dict[o])
 
+TOP_LEVEL_COMPS = {
+	'address': 			['address', 'street', 'unit',],
+	'intersection': 	['street_1', 'street_2',],
+}
+
 def run_tests():
 	parser = Parser()
 
@@ -42,6 +47,7 @@ def run_tests():
 		parsed = parser.parse(input_address)
 		parsed_address = parsed['standardized_address']
 		from_to = '{} => {}'.format(input_address, parsed_address)
+		parsed_type = parsed['type']
 		dots = '.' * (75 - len(from_to))
 		status = 'OK'
 
@@ -62,7 +68,7 @@ def run_tests():
 
 		if len(diffs) > 0:
 			diffs = [x for x in diffs if x != 'components']
-			for comp_set in ('address', 'street', 'unit'):
+			for comp_set in TOP_LEVEL_COMPS[parsed_type]:
 				comp_diffs = DictDiffer(
 					parsed['components'][comp_set],
 					expected['components'][comp_set]
@@ -70,10 +76,10 @@ def run_tests():
 				for comp_diff in comp_diffs.changed():
 					diffs.append('{}.{}: {}'.format(comp_set, comp_diff, parsed['components'][comp_set][comp_diff]))
 
-		# Check street_address manually
-		if expected['components']['street_address'] != \
-			parsed['components']['street_address']:
-			diffs.append('street_address')
+		# Check standardized manually, since it's not in a top level comp
+		if expected['standardized_address'] != \
+			parsed['standardized_address']:
+			diffs.append('standardized_address')
 
 		for diff in diffs:
 			print('    - {}'.format(diff))

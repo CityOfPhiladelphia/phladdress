@@ -28,8 +28,9 @@ street_num_fields = ['full', 'low', 'low_num', 'low_suffix', 'low_fractional', \
 	'high', 'high_num', 'high_num_full', 'high_suffix', 'high_fractional']
 
 # Address type regex
-single_address_re = re.compile('^\d+\w?(-\w+)?( \d/\d)?( .+)+$')
-intersection_pat = '^(?P<street_1>[A-Z0-9 ]+)( AND | ?& ?| ?\+ ?| AT )(?P<street_2>[A-Z0-9 ]+)$'
+single_address_re = re.compile('^\d+\w?(-\w+)?( \d/\d)?( [A-Z0-9#]+)+$')
+# intersection_pat = '^(?P<street_1>[A-Z0-9 ]+)( (AND|&|+|AT) )(?P<street_2>[A-Z0-9 ]+)$'
+intersection_pat = '^(?P<street_1>[A-Z0-9 ]+)( (&|AND|/|\+|AT) )(?P<street_2>[A-Z0-9 ]+)$'
 intersection_re = re.compile(intersection_pat)
 po_box_re = re.compile('^P(\.|OST)? ?O(\.|FFICE)? ?BOX (?P<num>\w+)$')
 street_name_re = re.compile('^\w+( \w+)*$')  # TODO: this is not mutually exclusive with po_box_re
@@ -83,16 +84,16 @@ class Parser:
 		if not num.isdigit():
 			raise ValueError('Not a number: {}'.format(num))
 
-		last_digit = num[-1]
+		last_digit = int(num[-1])
 		suffix = None
 
-		if last_digit > 3:
+		if last_digit == 0 or last_digit > 3:
 			suffix = 'TH'
 		elif last_digit == 1:
 			suffix = 'ST'
 		elif last_digit == 2:
 			suffix = 'ND'
-		elif last_digit== 3:
+		elif last_digit == 3:
 			suffix = 'RD'
 
 		return num + suffix
@@ -135,7 +136,7 @@ class Parser:
 		first_token = tokens[0]
 		
 		# Check for ordinals
-		if self.is_ordinal(first_token):
+		if self.is_ordinal(first_token)[0]:
 			tokens[0] = self.standardize_ordinal_street_name(first_token)
 		elif first_token.isdigit():
 			tokens[0] = self.ordinalize(first_token)
@@ -223,18 +224,7 @@ class Parser:
 		
 		intersection_search = intersection_re.search(addr)
 		if intersection_search:
-			# return self.parse_intersection(intersection_search)
-			street_1_comps = self.parse_street(intersection_search.group('street_1'))
-			street_2_comps = self.parse_street(intersection_search.group('street_2'))
-			return {
-				'input_address': input_addr,
-				'standardized_address': input_addr,
-				'components': {
-					'street_1': street_1_comps,
-					'street_2': street_2_comps
-				},
-				'type': 'intersection',
-			}
+			return self.parse_intersection(input_addr, intersection_search)
 		
 		po_box_search = po_box_re.search(addr)
 		if po_box_search:
@@ -255,6 +245,32 @@ class Parser:
 			}
 
 		raise ValueError('Address format not recognized: {}'.format(addr))
+
+	def parse_intersection(self, input_address, comps):
+		street_1 = comps.group('street_1')
+		street_2 = comps.group('street_2')
+
+		# Check for STS (e.g. 1ST & MARKET STS)
+		if street_2.endswith(' STS'):
+			if not street_1.endswith(' ST'):
+				street_1 += ' ST'
+			street_2 = street_2.replace(' STS', ' ST')
+
+		street_1_comps = self.parse_street(street_1)[0]
+		street_2_comps = self.parse_street(street_2)[0]
+
+		standardized_address = ' & '.join([x['full'] for x in [street_1_comps, \
+			street_2_comps]])
+
+		return {
+			'input_address': input_address,
+			'standardized_address': standardized_address,
+			'components': {
+				'street_1': street_1_comps,
+				'street_2': street_2_comps
+			},
+			'type': 'intersection',
+		}
 
 	def parse_street(self, input_street, unit_type=None, unit_num=None):
 		'''
@@ -667,7 +683,13 @@ if __name__ == '__main__':
 	###############################################
 	# TO CREATE UNIT TESTS
 	###############################################
-	# parser = Parser()
-	# parsed = parser.parse('')
-	# import json
-	# print(json.dumps(parsed, sort_keys=True, indent='\t').replace('"', '\'').replace('null', 'None'))
+	import json
+	input_address = ''
+	parser = Parser()
+	parsed = parser.parse(input_address)
+	unit_test = {
+		'input': input_address,
+		'expected_results': parsed,
+	}
+	print(json.dumps(unit_test, sort_keys=True, indent='\t')\
+		.replace('"', '\'').replace('null', 'None'))

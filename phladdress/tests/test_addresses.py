@@ -855,4 +855,130 @@ TEST_ADDRESSES = [
 			'type': 'address'
 		}
 	},
+
+
+	# Ordinal street missing ordinal suffix
+	{
+		'input': '133 10 ST',
+		'expected_results': {
+			'components': {
+				'address': {
+					'full': '133',
+					'high': None,
+					'high_fractional': None,
+					'high_num': None,
+					'high_num_full': None,
+					'high_parity': None,
+					'high_suffix': None,
+					'low': '133',
+					'low_fractional': None,
+					'low_num': 133,
+					'low_parity': 'O',
+					'low_suffix': ''
+				},
+				'street': {
+					'full': '10TH ST',
+					'name': '10TH',
+					'postdir': None,
+					'predir': None,
+					'suffix': 'ST'
+				},
+				'street_address': '133 10TH ST',
+				'unit': {
+					'num': None,
+					'type': None
+				}
+			},
+			'input_address': '133 10 ST',
+			'standardized_address': '133 10TH ST',
+			'type': 'address'
+		}
+	},
+
+
+################################################################################
+# INTERSECTIONS
+################################################################################
+
+	# Basic intersection
+	{
+		'input': '4TH ST & CARPENTER LN',
+		'expected_results': 
+		{
+			'components': {
+				'street_1': {
+					'full': '4TH ST',
+					'name': '4TH',
+					'postdir': None,
+					'predir': None,
+					'suffix': 'ST'
+				},
+				'street_2': {
+					'full': 'CARPENTER LN',
+					'name': 'CARPENTER',
+					'postdir': None,
+					'predir': None,
+					'suffix': 'LN'
+				}
+			},
+			'input_address': '4TH ST & CARPENTER LN',
+			'standardized_address': '4TH ST & CARPENTER LN',
+			'type': 'intersection'
+		}
+	},
+
+
+	# Ordinal intersection missing ordinal suffix
+	{
+		'input': '4 & CARPENTER',
+		'expected_results': 
+		{
+			'components': {
+				'street_1': {
+					'full': '4TH',
+					'name': '4TH',
+					'postdir': None,
+					'predir': None,
+					'suffix': None
+				},
+				'street_2': {
+					'full': 'CARPENTER',
+					'name': 'CARPENTER',
+					'postdir': None,
+					'predir': None,
+					'suffix': None
+				}
+			},
+			'input_address': '4 & CARPENTER',
+			'standardized_address': '4TH & CARPENTER',
+			'type': 'intersection'
+		}
+	},
+
+
+	# Plural street suffix
+	{
+		'input': 'MARKET & BROAD STS',
+		'expected_results': {
+			'components': {
+				'street_1': {
+					'full': 'MARKET ST',
+					'name': 'MARKET',
+					'postdir': None,
+					'predir': None,
+					'suffix': 'ST'
+				},
+				'street_2': {
+					'full': 'BROAD ST',
+					'name': 'BROAD',
+					'postdir': None,
+					'predir': None,
+					'suffix': 'ST'
+				}
+			},
+			'input_address': 'MARKET & BROAD STS',
+			'standardized_address': 'MARKET ST & BROAD ST',
+			'type': 'intersection'
+		}
+	},
 ]
