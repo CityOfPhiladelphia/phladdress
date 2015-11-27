@@ -126,6 +126,13 @@ with open(os.path.join(os.path.dirname(__file__), './data/suffixes.csv')) as f:
 	# Set to look up suffixes
 	SUFFIXES = set(SUFFIXES_STD.keys())
 
+# To convert (standardized) plural suffixes to singular. For intersections.
+SUFFIXES_PLURAL_STD = {
+	'STS': 'ST',
+	'AVES': 'AVE',
+}
+SUFFIXES_PLURAL = set(SUFFIXES_PLURAL_STD.keys())
+
 '''
 UNIT TYPES
 '''

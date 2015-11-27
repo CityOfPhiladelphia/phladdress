@@ -34,6 +34,7 @@ intersection_pat = '^(?P<street_1>[A-Z0-9 ]+)( (&|AND|/|\+|AT) )(?P<street_2>[A-
 intersection_re = re.compile(intersection_pat)
 po_box_re = re.compile('^P(\.|OST)? ?O(\.|FFICE)? ?BOX (?P<num>\w+)$')
 street_name_re = re.compile('^\w+( \w+)*$')  # TODO: this is not mutually exclusive with po_box_re
+alphanumeric_re = re.compile('^[A-Z0-9 ]+$')  # To validate street name
 
 # Misc
 # zip_re = re.compile('(?P<full>(?P<zip_5>\d{5})(-(?P<zip_4>\d{4}))?)$')
@@ -81,22 +82,29 @@ class Parser:
 		return False, None 
 
 	def ordinalize(self, num):
-		if not num.isdigit():
-			raise ValueError('Not a number: {}'.format(num))
+		if not num.isdigit() or num == 0:
+			raise ValueError('Cannot ordinalize: {}'.format(num))
 
 		last_digit = int(num[-1])
+		num = int(num)
 		suffix = None
 
 		if last_digit == 0 or last_digit > 3:
 			suffix = 'TH'
 		elif last_digit == 1:
-			suffix = 'ST'
+			if num == 11:
+				suffix = 'TH'
+			else:
+				suffix = 'ST'
 		elif last_digit == 2:
-			suffix = 'ND'
+			if num == 12:
+				suffix = 'TH'
+			else:
+				suffix = 'ND'
 		elif last_digit == 3:
 			suffix = 'RD'
 
-		return num + suffix
+		return str(num) + suffix
 
 	def calculate_similarity(self, a, b):
 	    return SequenceMatcher(None, a, b).ratio()
@@ -131,7 +139,8 @@ class Parser:
 	def standardize_street_name(self, tokens):
 		'''
 		Standardize a street name
-		Note: this takes tokens and returns a string
+		Note: this takes tokens and returns a string. Also takes tokens to 
+		check if we should ordinalize a raw numbers (e.g. 10 ST).
 		'''
 		first_token = tokens[0]
 		
@@ -139,7 +148,15 @@ class Parser:
 		if self.is_ordinal(first_token)[0]:
 			tokens[0] = self.standardize_ordinal_street_name(first_token)
 		elif first_token.isdigit():
-			tokens[0] = self.ordinalize(first_token)
+			if len(tokens) > 1:
+				# Case: 968 0 N LAWRENCE ST. Delete the stray 0.
+				del tokens[0]
+			else:
+				# Case: 101 2 ST => 101 2ND ST
+				tokens[0] = self.ordinalize(first_token)
+
+				# raise ValueError('Not a valid address')
+
 		# Check for abbreviations
 		for i, token in enumerate(tokens):
 			if token in ABBRS:
@@ -159,6 +176,64 @@ class Parser:
 			street_name = 'SAINT {}'.format(saint)
 
 		return street_name
+
+	def standardize_address_num(self, comps):
+		'''
+		Takes street num (aka address num) comps and standardizes. Handles
+		ranges, etc.
+		'''
+		# Single address
+		if not comps['high']:
+			addr_type = 'single'
+			comps['high_num_full'] = None
+		# Range
+		else:
+			addr_type = 'range'
+			low = comps['low_num']
+			high = comps['high_num']
+			len_low = len(low)
+			len_high = len(high)
+
+			# Expand high num to full number (100-3 MAIN ST => 103)
+			high_full = None
+
+			# Case: 1022-24 WOOD ST
+			if len_high == 2:
+				high_full = int(low[:-len_high] + high)
+
+				# Edge case: 826-26 N 3RD ST. Drop range.
+				if high_full == int(low):
+					street_num_full = comps['full']
+					street_num_no_high = street_num_full[:street_num_full.find('-')]
+					street_num_search = street_num_re.search(street_num_no_high)
+					comps = street_num_search.groupdict()
+			# Case: 1022-1024 WOOD ST. Shorten high num.
+			elif len_low == len_high:
+				high_full = int(high)
+				high_short = high[-2:]
+				comps['high_num'] = high_short
+				comps['full'] = '{}-{}'.format(low, high_short)
+			else:
+				raise ValueError('Not a valid range')
+
+			# Return ints
+			if comps['high_num']:
+				comps['high_num'] = int(comps['high_num'])
+			comps['high_num_full'] = high_full
+
+		# Make low num an integer
+		comps['low_num'] = int(comps['low_num'])
+
+		# Get parity
+		comps['low_parity'] = self.parity(comps['low_num'])
+		comps['high_parity'] = self.parity(comps['high_num']) if comps['high_num'] else None
+
+		# Edge case: 281-A HERMITAGE ST in PWD parcels
+		if '-' in comps['low']:
+			comps['low'] = comps['low'].replace('-', '')
+			comps['full'] = comps['full'].replace('-', '')
+		
+		return comps
 
 	def standardize_unit_num(self, unit_num):
 		'''
@@ -250,17 +325,24 @@ class Parser:
 		street_1 = comps.group('street_1')
 		street_2 = comps.group('street_2')
 
-		# Check for STS (e.g. 1ST & MARKET STS)
-		if street_2.endswith(' STS'):
-			if not street_1.endswith(' ST'):
-				street_1 += ' ST'
-			street_2 = street_2.replace(' STS', ' ST')
-
 		street_1_comps = self.parse_street(street_1)[0]
 		street_2_comps = self.parse_street(street_2)[0]
 
-		standardized_address = ' & '.join([x['full'] for x in [street_1_comps, \
-			street_2_comps]])
+		# Check for plural street suffix (STS, AVES)
+		street_2_suffix = street_2_comps['suffix']
+		if street_2_suffix in SUFFIXES_PLURAL:
+			singular = SUFFIXES_PLURAL_STD[street_2_suffix]
+			street_1 = street_1_comps['full']
+			if not street_1.endswith(' ' + singular):
+				street_1 += ' ' + singular
+			street_2 = street_2_comps['full'].replace(' ' + street_2_suffix,\
+				' ' + singular)
+
+			street_1_comps = self.parse_street(street_1)[0]
+			street_2_comps = self.parse_street(street_2)[0]
+
+		street_fulls = [x['full'] for x in [street_1_comps, street_2_comps]]
+		standardized_address = ' & '.join(street_fulls)
 
 		return {
 			'input_address': input_address,
@@ -406,9 +488,14 @@ class Parser:
 		if postdir:
 			postdir = DIRS_STD[postdir]
 
+		street_full = ' '.join([str(x) for x in [predir, street_name, suffix, postdir] if x])
+		
+		# Make sure there are no special characters in the street name
+		if alphanumeric_re.search(street_full) is None:
+			raise ValueError('Not a valid street')
+
 		# Apply street corrections. These fix common disagreements between
 		# address sources, like JAMESTOWN AVE => JAMESTOWN ST.
-		street_full = ' '.join([str(x) for x in [predir, street_name, suffix, postdir] if x])
 		if street_full in CORRECTIONS:
 			incorrect_street_full = street_full
 			correction = CORRECTIONS[street_full]
@@ -456,60 +543,14 @@ class Parser:
 		'''
 		STREET NUM
 		'''
-
 		# Returns a dict of primary address components
 		street_num_search = street_num_re.search(addr)
-		street_num = None
+		# street_num = None
 
 		# Check if there's a street num
 		if street_num_search:
 			street_num_comps = street_num_search.groupdict()
-
-			# Single address
-			if not street_num_comps['high']:
-				addr_type = 'single'
-				street_num_comps['high_num_full'] = None
-			# Range
-			else:
-				addr_type = 'range'
-				low = street_num_comps['low_num']
-				high = street_num_comps['high_num']
-				len_high = len(high)
-
-				# Expand high num to full number (100-3 MAIN ST => 103)
-				high_full = None
-
-				if len_high <= len(low):
-					high_full = int(low[:-len_high] + high)
-
-					# If high num is same as low num (e.g. 826-26 N 3RD ST),
-					# remove and re-parse.
-					if high_full == int(low):
-						street_num_full = street_num_comps['full']
-						street_num_no_high = street_num_full[:street_num_full.find('-')]
-						street_num_search = street_num_re.search(street_num_no_high)
-						street_num_comps = street_num_search.groupdict()					
-				else:
-					high_full = int(high)
-
-				# Return ints
-				if street_num_comps['high_num']:
-					street_num_comps['high_num'] = int(street_num_comps['high_num'])
-				street_num_comps['high_num_full'] = high_full
-
-			# Make low num an integer
-			street_num_comps['low_num'] = int(street_num_comps['low_num'])
-
-			# Get parity
-			street_num_comps['low_parity'] = self.parity(street_num_comps['low_num'])
-			street_num_comps['high_parity'] = self.parity(street_num_comps['high_num']) if street_num_comps['high_num'] else None
-
-			# Edge case: 281-A HERMITAGE ST in PWD parcels
-			if '-' in street_num_comps['low']:
-				street_num_comps['low'] = street_num_comps['low'].replace('-', '')
-				street_num_comps['full'] = street_num_comps['full'].replace('-', '')
-			
-			street_num = street_num_comps['full']
+			street_num_comps = self.standardize_address_num(street_num_comps)
 
 			# Remove street num
 			addr = street_num_re.sub('', addr)[1:]
@@ -525,7 +566,6 @@ class Parser:
 		'''
 		UNIT
 		'''
-
 		# logging.debug('** PARSE UNIT **')
 		# logging.debug('tokens: {}'.format(tokens))
 
@@ -551,7 +591,8 @@ class Parser:
 					next_token = tokens[next_token_i]
 
 					next_next_token_i = next_token_i + 1
-					next_next_token = tokens[next_next_token_i] if len_tokens > next_next_token_i else None
+					next_next_token = tokens[next_next_token_i] if len_tokens \
+						> next_next_token_i else None
 
 					# Case: # APT 1
 					if next_token in UNIT_TYPES:
@@ -616,7 +657,26 @@ class Parser:
 		'''
 		STREET
 		'''
+		# Check for a numeral in the street tokens that should be a range.
+		# Case: 1022 1024 WOOD ST. Counter-cases: 1022 24 ST, 1022 24 BROADWAY.
+		first_token = tokens[0]
+		if first_token.isdigit() and len(tokens) > 1 and \
+			tokens[1] not in SUFFIXES:
+			# Make sure it would be a valid ascending range
+			low_num = street_num_comps['low_num']
+			first_token_num = int(first_token)
+			if low_num < first_token_num:
+				next_hundred = 100 - (low_num % 100) + low_num
+				if first_token_num < next_hundred:
+					# Update street num comps, delete first token
+					new_num = '{}-{}'.format(low_num, first_token_num)
+					street_num_comps = street_num_re.search(new_num).groupdict()
+					print('woot')
+					pprint(street_num_comps)
+					street_num_comps = self.standardize_address_num(street_num_comps)
+					del tokens[0]
 
+		# Parse street
 		street_comps, reset_unit = self.parse_street(' '.join(tokens), \
 			unit_type=unit_type, unit_num=unit_num)
 		if reset_unit:
@@ -642,6 +702,8 @@ class Parser:
 		RETURN
 		'''
 
+		street_num = street_num_comps['full']
+
 		predir = street_comps['predir']
 		street_name = street_comps['name']
 		suffix = street_comps['suffix']
@@ -653,7 +715,8 @@ class Parser:
 			'num': unit_num,
 		}
 
-		full_addr_comps = [street_num, predir, street_name, suffix, postdir, unit_type, unit_num]
+		full_addr_comps = [street_num, predir, street_name, suffix, postdir, \
+			unit_type, unit_num]
 		full_addr = ' '.join([str(comp) for comp in full_addr_comps if comp])
 
 		# Get similarity
@@ -683,13 +746,13 @@ if __name__ == '__main__':
 	###############################################
 	# TO CREATE UNIT TESTS
 	###############################################
-	import json
-	input_address = ''
-	parser = Parser()
-	parsed = parser.parse(input_address)
-	unit_test = {
-		'input': input_address,
-		'expected_results': parsed,
-	}
-	print(json.dumps(unit_test, sort_keys=True, indent='\t')\
-		.replace('"', '\'').replace('null', 'None'))
+	# import json
+	# input_address = ''
+	# parser = Parser()
+	# parsed = parser.parse(input_address)
+	# unit_test = {
+	# 	'input': input_address,
+	# 	'expected_results': parsed,
+	# }
+	# print(json.dumps(unit_test, sort_keys=True, indent='\t')\
+	# 	.replace('"', '\'').replace('null', 'None'))

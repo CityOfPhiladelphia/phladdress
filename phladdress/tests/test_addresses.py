@@ -587,41 +587,41 @@ TEST_ADDRESSES = [
 
 
 	# Junk after suffix, contains a unit type
-	{	'input': '124 NAUDAIN ST ENTER ON SIDE',
-		'expected_results': {
-			'components': {
-				'address': {
-					'full': '124',
-					'high': None,
-					'high_fractional': None,
-					'high_num': None,
-					'high_num_full': None,
-					'high_parity': None,
-					'high_suffix': None,
-					'low': '124',
-					'low_fractional': None,
-					'low_num': 124,
-					'low_parity': 'E',
-					'low_suffix': ''
-				},
-				'street': {
-					'full': 'NAUDAIN ST',
-					'name': 'NAUDAIN',
-					'postdir': None,
-					'predir': None,
-					'suffix': 'ST'
-				},
-				'street_address': '124 NAUDAIN ST',
-				'unit': {
-					'num': None,
-					'type': None
-				}
-			},
-			'input_address': '124 NAUDAIN ST ENTER ON SIDE',
-			'standardized_address': '124 NAUDAIN ST',
-			'type': 'address'
-		}
-	},
+	# {	'input': '124 NAUDAIN ST ENTER ON SIDE',
+	# 	'expected_results': {
+	# 		'components': {
+	# 			'address': {
+	# 				'full': '124',
+	# 				'high': None,
+	# 				'high_fractional': None,
+	# 				'high_num': None,
+	# 				'high_num_full': None,
+	# 				'high_parity': None,
+	# 				'high_suffix': None,
+	# 				'low': '124',
+	# 				'low_fractional': None,
+	# 				'low_num': 124,
+	# 				'low_parity': 'E',
+	# 				'low_suffix': ''
+	# 			},
+	# 			'street': {
+	# 				'full': 'NAUDAIN ST',
+	# 				'name': 'NAUDAIN',
+	# 				'postdir': None,
+	# 				'predir': None,
+	# 				'suffix': 'ST'
+	# 			},
+	# 			'street_address': '124 NAUDAIN ST',
+	# 			'unit': {
+	# 				'num': None,
+	# 				'type': None
+	# 			}
+	# 		},
+	# 		'input_address': '124 NAUDAIN ST ENTER ON SIDE',
+	# 		'standardized_address': '124 NAUDAIN ST',
+	# 		'type': 'address'
+	# 	}
+	# },
 
 
 	{
@@ -979,6 +979,72 @@ TEST_ADDRESSES = [
 			'input_address': 'MARKET & BROAD STS',
 			'standardized_address': 'MARKET ST & BROAD ST',
 			'type': 'intersection'
+		}
+	},
+
+
+	# AVES
+	{
+		'input': 'BUSTLETON & HALDEMAN AVES',
+		'expected_results': {
+			'components': {
+				'street_1': {
+					'full': 'BUSTLETON AVE',
+					'name': 'BUSTLETON',
+					'postdir': None,
+					'predir': None,
+					'suffix': 'AVE'
+				},
+				'street_2': {
+					'full': 'HALDEMAN AVE',
+					'name': 'HALDEMAN',
+					'postdir': None,
+					'predir': None,
+					'suffix': 'AVE'
+				}
+			},
+			'input_address': 'BUSTLETON & HALDEMAN AVES',
+			'standardized_address': 'BUSTLETON AVE & HALDEMAN AVE',
+			'type': 'intersection'
+		},
+	},
+
+
+	# Extra digit after address number (drop it)
+	{
+		'input': '968 0  N LAWRENCE ST',
+		'expected_results': {
+			'components': {
+				'address': {
+					'full': '968',
+					'high': None,
+					'high_fractional': None,
+					'high_num': None,
+					'high_num_full': None,
+					'high_parity': None,
+					'high_suffix': None,
+					'low': '968',
+					'low_fractional': None,
+					'low_num': 968,
+					'low_parity': 'E',
+					'low_suffix': ''
+				},
+				'street': {
+					'full': 'N LAWRENCE ST',
+					'name': 'N LAWRENCE',
+					'postdir': None,
+					'predir': None,
+					'suffix': 'ST'
+				},
+				'street_address': '968 N LAWRENCE ST',
+				'unit': {
+					'num': None,
+					'type': None
+				}
+			},
+			'input_address': '968 0  N LAWRENCE ST',
+			'standardized_address': '968 N LAWRENCE ST',
+			'type': 'address'
 		}
 	},
 ]

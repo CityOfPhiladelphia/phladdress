@@ -1,3 +1,5 @@
+import sys
+import traceback
 from phladdress.parser import Parser
 from phladdress.tests.test_addresses import TEST_ADDRESSES
 
@@ -44,7 +46,14 @@ def run_tests():
 		input_address = test_address['input']
 		# print('\n' + input_address)
 		expected = test_address['expected_results']
-		parsed = parser.parse(input_address)
+		
+		try:
+			parsed = parser.parse(input_address)
+		except:
+			print('Error parsing: {}'.format(input_address))
+			print(traceback.format_exc())
+			sys.exit()
+
 		parsed_address = parsed['standardized_address']
 		from_to = '{} => {}'.format(input_address, parsed_address)
 		parsed_type = parsed['type']
