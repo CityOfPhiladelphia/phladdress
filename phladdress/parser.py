@@ -543,6 +543,7 @@ class Parser:
 		'''
 		STREET NUM
 		'''
+
 		# Returns a dict of primary address components
 		street_num_search = street_num_re.search(addr)
 		# street_num = None
@@ -566,6 +567,7 @@ class Parser:
 		'''
 		UNIT
 		'''
+
 		# logging.debug('** PARSE UNIT **')
 		# logging.debug('tokens: {}'.format(tokens))
 
@@ -657,6 +659,7 @@ class Parser:
 		'''
 		STREET
 		'''
+
 		# Check for a numeral in the street tokens that should be a range.
 		# Case: 1022 1024 WOOD ST. Counter-cases: 1022 24 ST, 1022 24 BROADWAY.
 		first_token = tokens[0]
@@ -671,8 +674,6 @@ class Parser:
 					# Update street num comps, delete first token
 					new_num = '{}-{}'.format(low_num, first_token_num)
 					street_num_comps = street_num_re.search(new_num).groupdict()
-					print('woot')
-					pprint(street_num_comps)
 					street_num_comps = self.standardize_address_num(street_num_comps)
 					del tokens[0]
 
@@ -701,7 +702,7 @@ class Parser:
 		'''
 		RETURN
 		'''
-
+		
 		street_num = street_num_comps['full']
 
 		predir = street_comps['predir']
