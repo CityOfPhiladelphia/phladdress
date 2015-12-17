@@ -28,7 +28,7 @@ street_num_fields = ['full', 'low', 'low_num', 'low_suffix', 'low_fractional', \
 	'high', 'high_num', 'high_num_full', 'high_suffix', 'high_fractional']
 
 # Address type regex
-single_address_re = re.compile('^\d+\w?(-\w+)?( \d/\d)?( [A-Z0-9#]+)+$')
+single_address_re = re.compile('^\d+\w?(-\w+)?( \d/\d)?( [A-Z0-9#\-]+)+$')
 # intersection_pat = '^(?P<street_1>[A-Z0-9 ]+)( (AND|&|+|AT) )(?P<street_2>[A-Z0-9 ]+)$'
 intersection_pat = '^(?P<street_1>[A-Z0-9 ]+)( (&|AND|/|\+|AT) )(?P<street_2>[A-Z0-9 ]+)$'
 intersection_re = re.compile(intersection_pat)
@@ -741,19 +741,19 @@ if __name__ == '__main__':
 	# LOGGING_LEVEL = logging.DEBUG
 	# logging.basicConfig(level=LOGGING_LEVEL, format='%(message)s')
 
-	from phladdress.tests import parser_tests
-	parser_tests.run_tests()
+	# from phladdress.tests import parser_tests
+	# parser_tests.run_tests()
 
 	###############################################
 	# TO CREATE UNIT TESTS
 	###############################################
-	# import json
-	# input_address = ''
-	# parser = Parser()
-	# parsed = parser.parse(input_address)
-	# unit_test = {
-	# 	'input': input_address,
-	# 	'expected_results': parsed,
-	# }
-	# print(json.dumps(unit_test, sort_keys=True, indent='\t')\
-	# 	.replace('"', '\'').replace('null', 'None'))
+	import json
+	input_address = '1234 MARKET ST # C-4'
+	parser = Parser()
+	parsed = parser.parse(input_address)
+	unit_test = {
+		'input': input_address,
+		'expected_results': parsed,
+	}
+	print(json.dumps(unit_test, sort_keys=True, indent='\t')\
+		.replace('"', '\'').replace('null', 'None'))
