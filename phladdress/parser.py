@@ -207,6 +207,8 @@ class Parser:
 					street_num_no_high = street_num_full[:street_num_full.find('-')]
 					street_num_search = street_num_re.search(street_num_no_high)
 					comps = street_num_search.groupdict()
+					high_full = None
+
 			# Case: 1022-1024 WOOD ST. Shorten high num.
 			elif len_low == len_high:
 				high_full = int(high)
@@ -748,9 +750,11 @@ if __name__ == '__main__':
 	# TO CREATE UNIT TESTS
 	###############################################
 	import json
-	input_address = '1234 MARKET ST # C-4'
+
+	input_address = '1234 MARKET ST'
 	parser = Parser()
 	parsed = parser.parse(input_address)
+
 	unit_test = {
 		'input': input_address,
 		'expected_results': parsed,

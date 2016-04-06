@@ -1,8 +1,8 @@
 from phladdress.parser import Parser
 from datetime import datetime
 
-TIMES = 500000
-TEST_ADDRESS = '1234-36 MARKET ST'
+TIMES = 600000
+TEST_ADDRESS = '123456 WEST BOB JONES DRIVE SOUTH # 5'
 
 start = datetime.now()
 parser = Parser()
